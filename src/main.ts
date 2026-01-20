@@ -234,6 +234,9 @@ function renderResult(indices: number[], entities: string[], embeddings: number[
 
 function renderMatrix(entities: string[], embeddings: number[][]) {
     const table = document.getElementById('matrix-table') as HTMLTableElement;
+    const thresholdInput = document.getElementById('sim-threshold') as HTMLInputElement;
+    const thresholdVal = document.getElementById('sim-threshold-val') as HTMLSpanElement;
+    
     if (!table) return;
 
     // Header
@@ -251,11 +254,10 @@ function renderMatrix(entities: string[], embeddings: number[][]) {
             const cells = entities.map((entityB, j) => {
                 const dist = getDistance(embeddings[i], embeddings[j]);
                 const sim = (1 - dist).toFixed(3);
+                const isDiag = i === j;
                 // Highlight diagonal
-                const bgClass = i === j ? 'bg-slate-700/30 text-white font-bold' : '';
-                // Highlight high similarity
-                const textClass = parseFloat(sim) > 0.8 ? 'text-green-400' : 'text-slate-400';
-                return `<td class="px-3 py-2 font-mono ${bgClass} ${textClass}">${sim}</td>`;
+                const bgClass = isDiag ? 'bg-slate-700/30 text-white font-bold' : '';
+                return `<td class="px-3 py-2 font-mono ${bgClass} matrix-cell transition-colors duration-200" data-sim="${sim}">${sim}</td>`;
             }).join('');
             
             return `
@@ -268,7 +270,43 @@ function renderMatrix(entities: string[], embeddings: number[][]) {
             `;
         }).join('');
     }
+    
+    // Initial color update
+    if (thresholdInput) {
+        updateMatrixColors(parseFloat(thresholdInput.value));
+        
+        // Remove old listener if exists (simple way: clone node, or just ensure we don't bind multiple times)
+        // Since renderMatrix is called on sort, we might be adding multiple listeners if we are not careful.
+        // Better: bind listener once globally or handle it here cleanly.
+        thresholdInput.oninput = (e) => {
+             const val = parseFloat((e.target as HTMLInputElement).value);
+             thresholdVal.textContent = val.toFixed(2);
+             updateMatrixColors(val);
+        };
+    }
 }
+
+function updateMatrixColors(threshold: number) {
+    const cells = document.querySelectorAll('.matrix-cell');
+    cells.forEach(cell => {
+        const sim = parseFloat(cell.getAttribute('data-sim') || '0');
+        // Check if diagonal (has font-bold) - we don't want to override diagonl styling too much, but maybe coloring it is fine.
+        // Actually, diagonal is always 1.0, so it will likely be colored.
+        if (sim >= threshold) {
+            cell.classList.add('text-green-400');
+            cell.classList.remove('text-slate-400');
+            // Make background slightly green too for high matches?
+            if (sim < 0.999) { // Don't color diagonal bg
+                 cell.classList.add('bg-green-900/20');
+            }
+        } else {
+            cell.classList.remove('text-green-400');
+             cell.classList.remove('bg-green-900/20');
+            cell.classList.add('text-slate-400');
+        }
+    });
+}
+
 
 
 // Add animation style since we used it

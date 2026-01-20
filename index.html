@@ -43,22 +43,29 @@
           </div>
         </div>
       </div>
+    </div>
+  </div>
 
-      <div class="space-y-4 pt-8">
-        <h2 class="text-xl font-semibold text-purple-300">Debug: Distance Matrix</h2>
-        <div class="overflow-x-auto bg-slate-800 border border-slate-700 rounded-xl p-4">
-          <table id="matrix-table" class="w-full text-left text-sm text-slate-400">
-            <thead class="text-xs text-slate-200 uppercase bg-slate-700/50">
-              <tr></tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td class="p-4 text-center">Matrix will appear here after sorting...</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+  <div class="space-y-4 pt-8 max-w-[95%] mx-auto">
+    <div class="flex items-center justify-between">
+      <h2 class="text-xl font-semibold text-purple-300">Debug: Distance Matrix</h2>
+      <div class="flex items-center gap-4 bg-slate-800 px-4 py-2 rounded-lg border border-slate-700">
+        <label for="sim-threshold" class="text-sm text-slate-400">Color Threshold:</label>
+        <input type="range" id="sim-threshold" min="0" max="1" step="0.01" value="0.8" class="w-32 accent-purple-500">
+        <span id="sim-threshold-val" class="text-sm font-mono text-purple-400 w-12 text-right">0.80</span>
       </div>
+    </div>
+    <div class="overflow-x-auto bg-slate-800 border border-slate-700 rounded-xl p-4">
+      <table id="matrix-table" class="w-full text-left text-sm text-slate-400">
+        <thead class="text-xs text-slate-200 uppercase bg-slate-700/50">
+          <tr></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="p-4 text-center">Matrix will appear here after sorting...</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
   <script type="module" src="/src/main.ts"></script>
