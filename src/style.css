@@ -1,1 +1,19 @@
 @import "tailwindcss";
+
+.matrix-tbl-container {
+    --threshold: 0.8;
+}
+
+.matrix-cell {
+    /* Calculate a switch value: 0 if sim < threshold, 1 if sim >= threshold */
+    /* (sim - threshold) will be positive if match  */
+    /* Multiply by huge number to saturate to 1 or 0 (via clamp) */
+    --is-highlight: clamp(0., (var(--sim) - var(--threshold)) * 99999., 1.);
+
+    /* Fallback */
+    color: theme('colors.slate.400');
+
+    /* Modern switch */
+    color: color-mix(in srgb, theme('colors.slate.400'), theme('colors.green.400') calc(var(--is-highlight) * 100%));
+    background-color: color-mix(in srgb, transparent, rgba(20, 83, 45, 0.3) calc(var(--is-highlight) * 100%));
+}

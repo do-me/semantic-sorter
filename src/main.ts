@@ -1,46 +1,75 @@
 import './style.css'
-import { pipeline, env } from '@huggingface/transformers'
-import init, { solve_pragmatic, get_routing_locations } from './vrp-pkg/vrp_cli.js'
+import Worker from './worker?worker'
 
-// Configure env to use local wasm for transformers if needed, but defaults are usually fine.
-// We might need to ensure webgpu is available.
-env.allowLocalModels = false;
-env.useBrowserCache = true;
-
-let extractor: any = null;
-let vrpInitialized = false;
+let worker: Worker | null = null;
+let vrpReady = false;
 
 const inputText = document.getElementById('input-text') as HTMLTextAreaElement;
 const sortBtn = document.getElementById('sort-btn') as HTMLButtonElement;
 const outputList = document.getElementById('output-list') as HTMLDivElement;
 const statusDiv = document.getElementById('status') as HTMLDivElement;
+const matrixTableContainer = document.querySelector('.overflow-x-auto') as HTMLDivElement;
+if (matrixTableContainer) {
+    matrixTableContainer.classList.add('matrix-tbl-container');
+}
 
 const setStatus = (msg: string) => {
   statusDiv.textContent = msg;
 }
 
 const initialize = async () => {
-  try {
-    setStatus('Initializing VRP engine...');
-    await init();
-    vrpInitialized = true;
+    setStatus('Initializing Worker & Loading Models...');
     
-    setStatus('Loading Embedding Model (mixedbread-ai/mxbai-embed-xsmall-v1)...');
-    // Using WebGPU as requested
-    extractor = await pipeline('feature-extraction', 'mixedbread-ai/mxbai-embed-xsmall-v1', {
-      device: 'webgpu',
-      dtype: 'fp32', // webgpu usually requires f32 or f16
-    });
+    worker = new Worker();
     
-    setStatus('Ready.');
-    sortBtn.disabled = false;
-  } catch (err) {
-    console.error(err);
-    setStatus(`Error initializing: ${err}`);
-  }
+    worker.onmessage = (e) => {
+        const { type, payload } = e.data;
+        if (type === 'READY') {
+            vrpReady = true;
+            setStatus('Ready (Worker Initialized).');
+            sortBtn.disabled = false;
+        } else if (type === 'STATUS') {
+            setStatus(payload);
+        } else if (type === 'ERROR') {
+            console.error(payload);
+            setStatus(`Error: ${payload}`);
+            sortBtn.disabled = false;
+        } else if (type === 'SORTED') {
+            handleSorted(payload);
+        }
+    };
+    
+    // Worker starts init automatically on load, but we can verify or trigger specific init if needed.
+    // Our worker calls initialize() at the end of the file, so it starts immediately.
 }
 
-// Cosine similarity
+
+const runSort = () => {
+  if (!worker || !vrpReady) return;
+  
+  const text = inputText.value.trim();
+  if (!text) return;
+  
+  const entities = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  if (entities.length < 2) {
+    setStatus('Please enter at least 2 entities.');
+    return;
+  }
+
+  sortBtn.disabled = true;
+  setStatus('Processing in worker...');
+  worker.postMessage({ type: 'SORT', payload: entities });
+}
+
+function handleSorted(payload: any) {
+    const { sortedIndices, entities, embeddings } = payload;
+    renderResult(sortedIndices, entities, embeddings);
+    renderMatrix(entities, embeddings);
+    setStatus(`Sorted ${entities.length} entities.`);
+    sortBtn.disabled = false;
+}
+
+// Re-implement helper for frontend display only
 function cosineSimilarity(a: number[], b: number[]) {
   let dot = 0;
   let normA = 0;
@@ -53,157 +82,9 @@ function cosineSimilarity(a: number[], b: number[]) {
   return dot / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
-// Distance = 1 - CosineSimilarity (for VRP minimization)
 function getDistance(a: number[], b: number[]) {
   const sim = cosineSimilarity(a, b);
-  // VRP minimizes distance. Higher similarity = closer = smaller distance.
-  // 1 - sim is standard.
   return Math.max(0, 1 - sim); 
-}
-
-const runSort = async () => {
-  if (!extractor || !vrpInitialized) return;
-  
-  const text = inputText.value.trim();
-  if (!text) return;
-  
-  const entities = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-  if (entities.length < 2) {
-    setStatus('Please enter at least 2 entities.');
-    return;
-  }
-
-  setStatus('Computing embeddings...');
-  sortBtn.disabled = true;
-
-  try {
-    // 1. Get embeddings
-    const output = await extractor(entities, { pooling: 'mean', normalize: true });
-    // output is a Tensor or list. usage: output.tolist()
-    const embeddings = output.tolist();
-
-    setStatus('Calculating distance matrix...');
-
-    // 2. Prepare VRP Problem
-    // We treat this as a TSP: 1 vehicle, visiting all nodes.
-    // To allow visiting in any order and returning to start (or not), we need to configure it.
-    // Standard TSP visits all and returns to start.
-    // If we want "order these items" effectively finding the shortest path through them:
-    // usually open TSP is better (start at any, end at any), but VRP usually needs a depot.
-    // Let's assume we start at the first item acting as "depot" or we introduce a dummy depot.
-    // For simplicity, let's just make a closed loop TSP tour. The order will be the tour.
-    
-    // Create jobs for each entity.
-    // Encoding index into lat/lng to avoid invalid range > 180
-    // lat = index / 180, lng = index % 180 (roughly)
-    const encodeLoc = (idx: number) => ({ lat: Math.floor(idx / 1000), lng: idx % 1000 });
-    const decodeLoc = (loc: any) => Math.round(loc.lat * 1000 + loc.lng);
-
-    const jobs = entities.map((entity, idx) => ({
-      id: `job_${idx}`,
-      deliveries: [{
-        places: [{
-          location: encodeLoc(idx),
-          duration: 0
-        }],
-        demand: [1]
-      }]
-    }));
-
-    // Define vehicle
-    const vehicle = {
-      typeId: "vehicle",
-      vehicleIds: ["v1"],
-      profile: { matrix: "car" },
-      costs: { fixed: 0, distance: 1, time: 0 },
-      shifts: [{
-        start: { earliest: "2024-01-01T00:00:00Z", location: encodeLoc(0) }, // Start at first entity
-      }],
-      capacity: [1000] // Infinite capacity
-    };
-
-    const problem = {
-      plan: { jobs: jobs.slice(1) }, // Exclude the first one (depot)
-      fleet: {
-        vehicles: [vehicle],
-        profiles: [{ name: "car" }]
-      }
-    };
-
-    // 3. Distance Matrix
-    
-    // We need to pass the full problem to get_routing_locations to know index mapping.
-    const routingLocationsStr = get_routing_locations(problem); 
-    const routingLocations = JSON.parse(routingLocationsStr); // Returns list of {lat, lng}
-    console.log('Routing locations:', routingLocations);
-    
-    // Calculate matrix size based on routingLocations
-    const size = routingLocations.length;
-    const distances: number[] = [];
-    
-    for (let i = 0; i < size; i++) {
-        for (let j = 0; j < size; j++) {
-            const u = routingLocations[i];
-            const v = routingLocations[j];
-            const idxA = decodeLoc(u);
-            const idxB = decodeLoc(v);
-            
-            if (!embeddings[idxA] || !embeddings[idxB]) {
-              console.error(`Missing embedding for index ${idxA} or ${idxB}`, u, v);
-              // Fallback to max distance
-              distances.push(20000); 
-              continue;
-            }
-
-            // idxA/B correspond to entities[idx]
-            const dist = getDistance(embeddings[idxA], embeddings[idxB]);
-            distances.push(Math.round(dist * 10000));
-        }
-    }
-    
-    const matrixData = [{
-      matrix: "car",
-      distances: distances,
-      travelTimes: distances
-    }];
-    
-    setStatus('Solving TSP...');
-    const config = {
-      termination: { maxTime: 5, maxGenerations: 1000 }
-    };
-    
-    const solutionStr = solve_pragmatic(problem, matrixData, config);
-    const solution = JSON.parse(solutionStr);
-    
-    // 4. Parse Solution
-    // The solution should be a list of tours.
-    if (solution.tours && solution.tours.length > 0) {
-      const tour = solution.tours[0];
-      const stops = tour.stops; 
-      
-      const sortedIndices: number[] = [];
-      // Iterate stops.
-      stops.forEach((stop: any) => {
-         const locationIdx = decodeLoc(stop.location); 
-         if (!sortedIndices.includes(locationIdx)) {
-             sortedIndices.push(locationIdx);
-         }
-      });
-      
-      // Display result
-      renderResult(sortedIndices, entities, embeddings);
-      renderMatrix(entities, embeddings);
-      setStatus(`Sorted ${entities.length} entities.`);
-    } else {
-      setStatus('No solution found.');
-    }
-
-  } catch (e) {
-    console.error(e);
-    setStatus(`Error during processing: ${e}`);
-  } finally {
-    sortBtn.disabled = false;
-  }
 }
 
 function renderResult(indices: number[], entities: string[], embeddings: number[][]) {
@@ -211,11 +92,10 @@ function renderResult(indices: number[], entities: string[], embeddings: number[
   
   indices.forEach((idx, i) => {
     let distanceInfo = '';
-    // For n > 0, show distance from previous
     if (i > 0) {
         const prevIdx = indices[i-1];
         const dist = getDistance(embeddings[prevIdx], embeddings[idx]);
-        const score = (1 - dist).toFixed(4); // Show similarity score (1-dist) as it's more intuitive 
+        const score = (1 - dist).toFixed(4); 
         distanceInfo = `<span class="text-xs text-slate-500 ml-auto">Sim: ${score}</span>`;
     }
 
@@ -226,7 +106,6 @@ function renderResult(indices: number[], entities: string[], embeddings: number[
       <span class="text-slate-200">${entities[idx]}</span>
       ${distanceInfo}
     `;
-    // Add tiny delay for animation effect
     el.style.animationDelay = `${i * 50}ms`;
     outputList.appendChild(el);
   });
@@ -250,14 +129,15 @@ function renderMatrix(entities: string[], embeddings: number[][]) {
     // Body
     const tbody = table.querySelector('tbody');
     if (tbody) {
+        // Prepare HTML string
+        // Note: setting style="--sim: ..." allows CSS to do the coloring
         tbody.innerHTML = entities.map((entityA, i) => {
             const cells = entities.map((entityB, j) => {
                 const dist = getDistance(embeddings[i], embeddings[j]);
                 const sim = (1 - dist).toFixed(3);
                 const isDiag = i === j;
-                // Highlight diagonal
                 const bgClass = isDiag ? 'bg-slate-700/30 text-white font-bold' : '';
-                return `<td class="px-3 py-2 font-mono ${bgClass} matrix-cell transition-colors duration-200" data-sim="${sim}">${sim}</td>`;
+                return `<td class="px-3 py-2 font-mono ${bgClass} matrix-cell transition-colors duration-200" style="--sim: ${sim}">${sim}</td>`;
             }).join('');
             
             return `
@@ -271,45 +151,30 @@ function renderMatrix(entities: string[], embeddings: number[][]) {
         }).join('');
     }
     
-    // Initial color update
+    // Handle Slider (CSS Variable Update)
     if (thresholdInput) {
-        updateMatrixColors(parseFloat(thresholdInput.value));
+        // Initial set
+        const updateThreshold = (val: number) => {
+             thresholdVal.textContent = val.toFixed(2);
+             if (matrixTableContainer) {
+                 // Update the CSS variable on the container
+                 // This propagates to all children cells instantly via CSS engine
+                 matrixTableContainer.style.setProperty('--threshold', val.toString());
+             }
+        };
+
+        const initialVal = parseFloat(thresholdInput.value);
+        updateThreshold(initialVal);
         
-        // Remove old listener if exists (simple way: clone node, or just ensure we don't bind multiple times)
-        // Since renderMatrix is called on sort, we might be adding multiple listeners if we are not careful.
-        // Better: bind listener once globally or handle it here cleanly.
         thresholdInput.oninput = (e) => {
              const val = parseFloat((e.target as HTMLInputElement).value);
-             thresholdVal.textContent = val.toFixed(2);
-             updateMatrixColors(val);
+             updateThreshold(val);
         };
     }
 }
 
-function updateMatrixColors(threshold: number) {
-    const cells = document.querySelectorAll('.matrix-cell');
-    cells.forEach(cell => {
-        const sim = parseFloat(cell.getAttribute('data-sim') || '0');
-        // Check if diagonal (has font-bold) - we don't want to override diagonl styling too much, but maybe coloring it is fine.
-        // Actually, diagonal is always 1.0, so it will likely be colored.
-        if (sim >= threshold) {
-            cell.classList.add('text-green-400');
-            cell.classList.remove('text-slate-400');
-            // Make background slightly green too for high matches?
-            if (sim < 0.999) { // Don't color diagonal bg
-                 cell.classList.add('bg-green-900/20');
-            }
-        } else {
-            cell.classList.remove('text-green-400');
-             cell.classList.remove('bg-green-900/20');
-            cell.classList.add('text-slate-400');
-        }
-    });
-}
 
-
-
-// Add animation style since we used it
+// Add animation
 const style = document.createElement('style');
 style.textContent = `
   @keyframes fade-in {
