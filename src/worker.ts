@@ -31,7 +31,7 @@ const initialize = async () => {
         
         ctx.postMessage({ type: 'READY' });
     } catch (e) {
-        ctx.postMessage({ type: 'ERROR', payload: `Init error: ${e}` });
+        ctx.postMessage({ type: 'ERROR', payload: `Init error: ${String(e)}` });
     }
 };
 
@@ -182,7 +182,7 @@ const runSort = async (entities: string[]) => {
 
     } catch (e) {
         console.error(e);
-        ctx.postMessage({ type: 'ERROR', payload: e.toString() });
+        ctx.postMessage({ type: 'ERROR', payload: String(e) });
     }
 };
 
