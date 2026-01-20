@@ -24,7 +24,8 @@ const layerState = {
     scores: false,
     arrows: false,
     radius: 8,
-    lineWidth: 3
+    lineWidth: 3,
+    labelSize: 14
 };
 
 const inputText = document.getElementById('input-text') as HTMLTextAreaElement;
@@ -66,6 +67,7 @@ bindLayerControl('layer-ln-scores', 'scores');
 bindLayerControl('layer-arrows', 'arrows');
 bindLayerControl('param-radius', 'radius');
 bindLayerControl('param-linewidth', 'lineWidth');
+bindLayerControl('param-labelsize', 'labelSize');
 
 const btnFullscreen = document.getElementById('btn-fullscreen');
 if (btnFullscreen) {
@@ -229,8 +231,8 @@ function renderMap(sortedIndices: number[], entities: string[], coordinates: num
     if (layerState.lines) layers.push(new PathLayer({ id: 'path-layer', data: pathData, widthMinPixels: 1, getPath: (d: any) => d.path, getColor: [30, 41, 59], getWidth: layerState.lineWidth }));
     if (layerState.arrows) layers.push(new PathLayer({ id: 'arrow-layer', data: arrowPathData, widthMinPixels: 1, getPath: (d: any) => d.path, getColor: [59, 130, 246], getWidth: Math.max(2, layerState.lineWidth * 0.7), capRounded: true, jointRounded: true }));
     if (layerState.scores) layers.push(new TextLayer({ id: 'score-layer', data: scoreData, getPosition: (d: any) => d.position, getText: (d: any) => d.text, getSize: 12, getColor: [59, 130, 246], backgroundColor: [11, 15, 26, 220], fontFamily: 'Monospace' }));
-    if (layerState.points) layers.push(new ScatterplotLayer({ id: 'scatter-layer', data: pointsData, pickable: true, opacity: 1, stroked: true, filled: true, radiusMinPixels: 4, getPosition: (d: any) => d.position, getFillColor: [37, 99, 235], getLineColor: [255, 255, 255], getRadius: layerState.radius, getLineWidth: 1, onClick: (info: any) => info.object && flyToEntity(info.object.index) }));
-    if (layerState.labels) layers.push(new TextLayer({ id: 'text-layer', data: pointsData, getPosition: (d: any) => d.position, getText: (d: any) => d.text, getSize: 14, getTextAnchor: 'middle', getAlignmentBaseline: 'center', pixelOffset: [0, -(layerState.radius + 18)], getColor: [255, 255, 255, 160], fontFamily: 'system-ui' }));
+    if (layerState.points) layers.push(new ScatterplotLayer({ id: 'scatter-layer', data: pointsData, pickable: true, opacity: 1, stroked: false, filled: true, radiusMinPixels: 4, getPosition: (d: any) => d.position, getFillColor: [37, 99, 235], getRadius: layerState.radius, onClick: (info: any) => info.object && flyToEntity(info.object.index) }));
+    if (layerState.labels) layers.push(new TextLayer({ id: 'text-layer', data: pointsData, getPosition: (d: any) => d.position, getText: (d: any) => d.text, getSize: layerState.labelSize, getTextAnchor: 'middle', getAlignmentBaseline: 'center', pixelOffset: [0, -(layerState.radius + layerState.labelSize + 4)], getColor: [255, 255, 255, 160], fontFamily: 'system-ui' }));
 
     deckInstance.setProps({ layers, initialViewState: { target: [0, 0, 0], zoom: 1 } });
 }

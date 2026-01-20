@@ -6,6 +6,9 @@ import { UMAP } from 'umap-js';
 env.allowLocalModels = false;
 env.useBrowserCache = true;
 
+env.backends.onnx.device = 'auto';     // <= the key line
+env.allowRemoteModels = true; 
+
 let extractor: any = null;
 let vrpReady = false;
 
@@ -18,8 +21,11 @@ const initialize = async () => {
         
         // Using WebGPU
         // We need to check if WebGPU is supported in worker context (usually yes in modern browsers)
-        extractor = await pipeline('feature-extraction', 'mixedbread-ai/mxbai-embed-xsmall-v1', {
-            device: 'webgpu',
+        extractor = await pipeline('feature-extraction',
+             'mixedbread-ai/mxbai-embed-xsmall-v1',
+             //'thomasht86/KaLM-embedding-multilingual-mini-instruct-v2.5-ONNX',
+              {
+            //device: 'webgpu',
             dtype: 'fp32',
         });
         
