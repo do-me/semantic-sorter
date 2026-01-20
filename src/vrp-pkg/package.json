@@ -1,0 +1,29 @@
+{
+  "name": "vrp-cli",
+  "type": "module",
+  "collaborators": [
+    "Ilya Builuk <ilya.builuk@gmail.com>"
+  ],
+  "description": "A command line interface for VRP solver",
+  "version": "1.25.0",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/reinterpretcat/vrp"
+  },
+  "files": [
+    "vrp_cli_bg.wasm",
+    "vrp_cli.js",
+    "vrp_cli.d.ts"
+  ],
+  "main": "vrp_cli.js",
+  "homepage": "https://github.com/reinterpretcat/vrp",
+  "types": "vrp_cli.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ],
+  "keywords": [
+    "vrp",
+    "optimization"
+  ]
+}
