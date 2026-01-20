@@ -1,37 +1,70 @@
 @import "tailwindcss";
 
+:root {
+    --accent-blue: #2563eb;
+    --bg-deep: #0b0f1a;
+    --panel-bg: #0f172a;
+}
+
 .matrix-tbl-container {
     --threshold: 0.8;
 }
 
 .matrix-cell {
-    /* Calculate diff using calc, ensure spaces around operators */
-    /* Using 0 and 1 without invalid trailing dots */
     --diff: calc(var(--sim) - var(--threshold));
-
-    /* Amplify diff to push values to effectively -infinity or +infinity */
     --amplified: calc(var(--diff) * 100000);
-
-    /* Clamp between 0 and 1 to create a binary switch (0 for < threshold, 1 for >= threshold) */
     --is-highlight: clamp(0, var(--amplified), 1);
 
-    /* Slate 400 (#94a3b8) to Green 400 (#4ade80) */
-    color: color-mix(in srgb, #94a3b8, #4ade80 calc(var(--is-highlight) * 100%));
+    /* Muted text to Blue/White highlight */
+    color: color-mix(in srgb, #64748b, #60a5fa calc(var(--is-highlight) * 100%));
 
-    /* Transparent to Green with 20% opacity */
-    background-color: color-mix(in srgb, transparent, rgba(74, 222, 128, 0.2) calc(var(--is-highlight) * 100%));
+    /* Transparent to Blue with very subtle opacity */
+    background-color: color-mix(in srgb, transparent, rgba(37, 99, 235, 0.15) calc(var(--is-highlight) * 100%));
 }
 
 #deck-container {
     height: 600px;
     width: 100%;
     position: relative;
-    background-color: #0f172a;
-    /* Slate 900 */
-    border: 1px solid #334155;
-    /* Slate 700 */
-    border-radius: 0.75rem;
-    /* rounded-xl */
+    background-color: #05070a;
+    border: 1px solid #1e293b;
+    border-radius: 0.5rem;
     overflow: hidden;
-    margin-top: 2rem;
+}
+
+/* Scrollbar styling for a cleaner look */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #1e293b;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #334155;
+}
+
+/* Animations */
+@keyframes fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in {
+    animation: fade-in 0.2s ease-out forwards;
+    opacity: 0;
 }
