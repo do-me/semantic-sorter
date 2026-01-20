@@ -23,8 +23,8 @@ const layerState = {
     labels: true,
     scores: false,
     arrows: false,
-    radius: 5,
-    lineWidth: 2
+    radius: 8,
+    lineWidth: 3
 };
 
 const inputText = document.getElementById('input-text') as HTMLTextAreaElement;
@@ -219,7 +219,7 @@ function renderMap(sortedIndices: number[], entities: string[], coordinates: num
         if (len > 0.1) {
             const ax = p1[0]+dx*0.6, ay = p1[1]+dy*0.6;
             const ux = dx/len, uy = dy/len, vx = -uy, vy = ux;
-            const sz = Math.max(3, layerState.lineWidth * 2.5);
+            const sz = Math.max(4, layerState.lineWidth * 2.5);
             const bx = ax-ux*sz, by = ay-uy*sz;
             arrowPathData.push({ path: [[bx+vx*sz*0.6, by+vy*sz*0.6], [ax, ay], [bx-vx*sz*0.6, by-vy*sz*0.6]] });
         }
@@ -227,10 +227,10 @@ function renderMap(sortedIndices: number[], entities: string[], coordinates: num
 
     const layers = [];
     if (layerState.lines) layers.push(new PathLayer({ id: 'path-layer', data: pathData, widthMinPixels: 1, getPath: (d: any) => d.path, getColor: [30, 41, 59], getWidth: layerState.lineWidth }));
-    if (layerState.arrows) layers.push(new PathLayer({ id: 'arrow-layer', data: arrowPathData, widthMinPixels: 1, getPath: (d: any) => d.path, getColor: [59, 130, 246], getWidth: Math.max(1, layerState.lineWidth * 0.7), capRounded: true, jointRounded: true }));
-    if (layerState.scores) layers.push(new TextLayer({ id: 'score-layer', data: scoreData, getPosition: (d: any) => d.position, getText: (d: any) => d.text, getSize: 9, getColor: [59, 130, 246], backgroundColor: [11, 15, 26, 220], fontFamily: 'Monospace' }));
-    if (layerState.points) layers.push(new ScatterplotLayer({ id: 'scatter-layer', data: pointsData, pickable: true, opacity: 1, stroked: true, filled: true, radiusMinPixels: 2, getPosition: (d: any) => d.position, getFillColor: [37, 99, 235], getLineColor: [255, 255, 255], getRadius: layerState.radius, getLineWidth: 0.5, onClick: (info: any) => info.object && flyToEntity(info.object.index) }));
-    if (layerState.labels) layers.push(new TextLayer({ id: 'text-layer', data: pointsData, getPosition: (d: any) => d.position, getText: (d: any) => d.text, getSize: 11, getTextAnchor: 'middle', getAlignmentBaseline: 'center', pixelOffset: [0, -(layerState.radius + 14)], getColor: [255, 255, 255, 160], fontFamily: 'system-ui' }));
+    if (layerState.arrows) layers.push(new PathLayer({ id: 'arrow-layer', data: arrowPathData, widthMinPixels: 1, getPath: (d: any) => d.path, getColor: [59, 130, 246], getWidth: Math.max(2, layerState.lineWidth * 0.7), capRounded: true, jointRounded: true }));
+    if (layerState.scores) layers.push(new TextLayer({ id: 'score-layer', data: scoreData, getPosition: (d: any) => d.position, getText: (d: any) => d.text, getSize: 12, getColor: [59, 130, 246], backgroundColor: [11, 15, 26, 220], fontFamily: 'Monospace' }));
+    if (layerState.points) layers.push(new ScatterplotLayer({ id: 'scatter-layer', data: pointsData, pickable: true, opacity: 1, stroked: true, filled: true, radiusMinPixels: 4, getPosition: (d: any) => d.position, getFillColor: [37, 99, 235], getLineColor: [255, 255, 255], getRadius: layerState.radius, getLineWidth: 1, onClick: (info: any) => info.object && flyToEntity(info.object.index) }));
+    if (layerState.labels) layers.push(new TextLayer({ id: 'text-layer', data: pointsData, getPosition: (d: any) => d.position, getText: (d: any) => d.text, getSize: 14, getTextAnchor: 'middle', getAlignmentBaseline: 'center', pixelOffset: [0, -(layerState.radius + 18)], getColor: [255, 255, 255, 160], fontFamily: 'system-ui' }));
 
     deckInstance.setProps({ layers, initialViewState: { target: [0, 0, 0], zoom: 1 } });
 }
@@ -247,8 +247,8 @@ function renderResult(indices: number[], entities: string[], embeddings: number[
     indices.forEach((idx, i) => {
         const sim = i > 0 ? (1 - getDistance(embeddings[indices[i-1]], embeddings[idx])).toFixed(4) : '';
         const el = document.createElement('div');
-        el.className = 'p-2.5 bg-slate-950/40 border border-slate-800/40 rounded flex items-center gap-3 animate-fade-in group hover:bg-slate-900 transition-all cursor-pointer hover:border-blue-500/30';
-        el.innerHTML = `<span class="text-[9px] text-slate-700 font-mono w-4">${(i+1).toString().padStart(2, '0')}</span><span class="text-slate-300 text-xs truncate max-w-[280px]">${entities[idx]}</span>${sim ? `<span class="text-[9px] text-slate-700 font-mono ml-auto tracking-tighter">SIM_${sim}</span>` : ''}`;
+        el.className = 'p-3 bg-slate-950/40 border border-slate-800/40 rounded flex items-center gap-4 animate-fade-in group hover:bg-slate-900 transition-all cursor-pointer hover:border-blue-500/30';
+        el.innerHTML = `<span class="text-[11px] text-slate-700 font-mono w-5">${(i+1).toString().padStart(2, '0')}</span><span class="text-slate-300 text-sm truncate max-w-[320px] font-medium">${entities[idx]}</span>${sim ? `<span class="text-[11px] text-slate-700 font-mono ml-auto tracking-tighter">SIM_${sim}</span>` : ''}`;
         el.onclick = () => flyToEntity(idx);
         el.style.animationDelay = `${i * 20}ms`;
         outputList.appendChild(el);
@@ -261,9 +261,9 @@ function renderMatrix(entities: string[], embeddings: number[][]) {
     const threshVal = document.getElementById('sim-threshold-val') as HTMLSpanElement;
     if (!table) return;
     const thead = table.querySelector('thead tr');
-    if (thead) thead.innerHTML = '<th class="px-4 py-3 border-b border-slate-800 font-bold uppercase tracking-widest text-slate-600">UID</th>' + entities.map((_, i) => `<th class="px-2 py-3 border-b border-slate-800 text-center text-[9px] text-slate-700 font-bold">${(i+1).toString().padStart(2, '0')}</th>`).join('');
+    if (thead) thead.innerHTML = '<th class="px-5 py-4 border-b border-slate-800 font-bold uppercase tracking-widest text-slate-600 text-[12px]">UID</th>' + entities.map((_, i) => `<th class="px-3 py-4 border-b border-slate-800 text-center text-[11px] text-slate-700 font-bold">${(i+1).toString().padStart(2, '0')}</th>`).join('');
     const tbody = table.querySelector('tbody');
-    if (tbody) tbody.innerHTML = entities.map((e, i) => `<tr class="hover:bg-slate-900 border-b border-slate-800/20"><td class="px-4 py-2 font-medium text-slate-500 whitespace-nowrap max-w-[200px] truncate cursor-pointer hover:text-blue-400 transition-colors" title="Focus entity" onclick="window.dispatchEvent(new CustomEvent('flyTo', {detail: ${i}}))"><span class="text-slate-700 font-mono text-[9px] mr-2">${(i+1).toString().padStart(2, '0')}</span><span class="text-[11px]">${e}</span></td>${entities.map((_, j) => { const s = (1 - getDistance(embeddings[i], embeddings[j])).toFixed(3); return `<td class="p-1 px-2 text-center matrix-cell transition-all duration-200 ${i===j ? 'bg-slate-900/50 text-white font-bold' : ''}" style="--sim: ${s}">${s}</td>`; }).join('')}</tr>`).join('');
+    if (tbody) tbody.innerHTML = entities.map((e, i) => `<tr class="hover:bg-slate-900 border-b border-slate-800/20"><td class="px-5 py-3 font-medium text-slate-500 whitespace-nowrap max-w-[240px] truncate cursor-pointer hover:text-blue-400 transition-colors" title="Focus entity" onclick="window.dispatchEvent(new CustomEvent('flyTo', {detail: ${i}}))"><span class="text-slate-700 font-mono text-[11px] mr-3">${(i+1).toString().padStart(2, '0')}</span><span class="text-[13px] font-medium">${e}</span></td>${entities.map((_, j) => { const s = (1 - getDistance(embeddings[i], embeddings[j])).toFixed(3); return `<td class="p-2 px-3 text-center matrix-cell transition-all duration-200 text-[12px] ${i===j ? 'bg-slate-900/50 text-white font-bold' : ''}" style="--sim: ${s}">${s}</td>`; }).join('')}</tr>`).join('');
     if (!window['flyToListenerAttached' as any]) { window.addEventListener('flyTo', (e: any) => flyToEntity(e.detail)); (window as any)['flyToListenerAttached'] = true; }
     if (threshIn) {
         const update = (v: number) => { threshVal.textContent = v.toFixed(2); table.parentElement?.style.setProperty('--threshold', v.toString()); };

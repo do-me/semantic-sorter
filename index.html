@@ -9,20 +9,21 @@
 </head>
 
 <body class="bg-[#0b0f1a] text-slate-200 min-h-screen font-sans selection:bg-blue-500/30">
-  <div id="app" class="max-w-[1440px] mx-auto px-6 py-12 space-y-12">
+  <div id="app" class="w-full mx-auto px-10 py-12 space-y-12">
     <!-- Header -->
     <header class="space-y-4 border-b border-slate-800 pb-8">
       <div class="flex items-center justify-between">
-        <h1 class="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
-          <span class="bg-blue-600 w-8 h-8 rounded flex items-center justify-center text-sm italic font-serif">S</span>
+        <h1 class="text-4xl font-bold tracking-tight text-white flex items-center gap-4">
+          <span
+            class="bg-blue-600 w-10 h-10 rounded flex items-center justify-center text-lg italic font-serif">S</span>
           Semantic Sorter
         </h1>
         <div class="flex items-center gap-4">
           <span
-            class="text-[10px] font-mono text-slate-500 uppercase tracking-widest border border-slate-800 px-2 py-1 rounded bg-slate-900/50">ENGINE_PRO_v1.0</span>
+            class="text-[12px] font-mono text-slate-500 uppercase tracking-widest border border-slate-800 px-3 py-1.5 rounded bg-slate-900/50">ENGINE_PRO_v1.0</span>
         </div>
       </div>
-      <p class="text-slate-400 max-w-2xl leading-relaxed text-sm">
+      <p class="text-slate-400 max-w-3xl leading-relaxed text-base">
         Enterprise-grade semantic sequencing for unstructured datasets. Projects high-dimensional embeddings into metric
         space and resolves optimal pathing via heuristic TSP solvers.
       </p>
@@ -33,28 +34,28 @@
       <section class="grid grid-cols-1 lg:grid-cols-2 gap-10">
         <div class="space-y-4">
           <div class="flex items-center justify-between">
-            <h2 class="text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em]">Data Ingest</h2>
-            <span class="text-[10px] text-slate-600 font-mono">TEXT_AREA_LOADED</span>
+            <h2 class="text-[13px] font-bold text-slate-500 uppercase tracking-[0.2em]">Data Ingest</h2>
+            <span class="text-[12px] text-slate-600 font-mono">TEXT_AREA_LOADED</span>
           </div>
           <div class="relative group">
             <textarea id="input-text"
-              class="w-full h-[400px] bg-slate-950 border border-slate-800 rounded-lg p-5 text-slate-300 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none font-mono text-xs leading-normal transition-all shadow-2xl"
+              class="w-full h-[400px] bg-slate-950 border border-slate-800 rounded-lg p-5 text-slate-300 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none font-mono text-sm leading-normal transition-all shadow-2xl"
               placeholder="Enter entities (one per line)..."></textarea>
           </div>
           <button id="sort-btn"
-            class="w-full py-4 px-6 bg-blue-600 hover:bg-blue-500 text-white rounded font-bold text-xs tracking-widest transition-all disabled:opacity-20 disabled:grayscale flex items-center justify-center gap-2 transform active:scale-[0.99] shadow-lg shadow-blue-900/20 uppercase">
+            class="w-full py-5 px-6 bg-blue-600 hover:bg-blue-500 text-white rounded font-bold text-sm tracking-widest transition-all disabled:opacity-20 disabled:grayscale flex items-center justify-center gap-2 transform active:scale-[0.99] shadow-lg shadow-blue-900/20 uppercase">
             <span>Execute Semantic Optimization</span>
           </button>
           <div id="status"
-            class="text-[10px] font-mono text-slate-500 min-h-[1.5em] flex items-center gap-4 border-t border-slate-800/10 pt-2">
+            class="text-[12px] font-mono text-slate-500 min-h-[1.5em] flex items-center gap-4 border-t border-slate-800/10 pt-2">
           </div>
         </div>
 
         <div class="space-y-4">
           <div class="flex items-center justify-between">
-            <h2 class="text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em]">Optimized result</h2>
+            <h2 class="text-[13px] font-bold text-slate-500 uppercase tracking-[0.2em]">Optimized result</h2>
             <button id="copy-btn"
-              class="text-[10px] font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1.5 px-3 py-1 rounded bg-blue-400/5 border border-blue-400/20 hover:bg-blue-400/10 transition-all uppercase tracking-wider">
+              class="text-[12px] font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1.5 px-3 py-1.5 rounded bg-blue-400/5 border border-blue-400/20 hover:bg-blue-400/10 transition-all uppercase tracking-wider">
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
@@ -66,7 +67,7 @@
           <div id="output-list"
             class="w-full h-[400px] bg-slate-950/50 border border-slate-800 rounded-lg p-5 overflow-y-auto space-y-1.5 relative scrollbar-thin scrollbar-thumb-slate-800">
             <div
-              class="absolute inset-0 flex items-center justify-center text-slate-800 font-mono text-[10px] pointer-events-none tracking-widest"
+              class="absolute inset-0 flex items-center justify-center text-slate-800 font-mono text-[12px] pointer-events-none tracking-widest"
               id="empty-state">
               READY_FOR_COMPUTE
             </div>
@@ -77,8 +78,8 @@
       <!-- Visualization Section -->
       <section class="space-y-6 pt-10 border-t border-slate-800/50">
         <div class="flex flex-wrap items-center justify-between gap-6">
-          <h2 class="text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em]">Geometric Projection</h2>
-          <div class="flex flex-wrap gap-3 text-[10px] font-mono items-center">
+          <h2 class="text-[13px] font-bold text-slate-500 uppercase tracking-[0.2em]">Geometric Projection</h2>
+          <div class="flex flex-wrap gap-3 text-[12px] font-mono items-center">
             <div class="flex gap-4 px-4 py-2 bg-slate-950 rounded border border-slate-800">
               <label class="flex items-center gap-2 cursor-pointer hover:text-blue-400"><input type="checkbox"
                   id="layer-points" checked class="accent-blue-600"> PTS</label>
@@ -118,8 +119,8 @@
           <canvas id="deck-canvas"></canvas>
           <div class="absolute top-4 left-4 flex gap-2">
             <div
-              class="bg-slate-950/80 backdrop-blur-md px-2 py-1 rounded text-[10px] font-mono text-blue-400 border border-blue-900/20 pointer-events-none">
-              COORD_SYSTEM: CARTESIAN_ORHTO
+              class="bg-slate-950/80 backdrop-blur-md px-3 py-1.5 rounded text-[12px] font-mono text-blue-400 border border-blue-900/20 pointer-events-none uppercase">
+              COORD_SYSTEM: CARTESIAN_ORTHO
             </div>
           </div>
         </div>
@@ -128,20 +129,20 @@
       <!-- Matrix Section -->
       <section class="space-y-6 pt-10 border-t border-slate-800/50">
         <div class="flex items-center justify-between">
-          <h2 class="text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em]">Semantic Distance Matrix</h2>
+          <h2 class="text-[13px] font-bold text-slate-500 uppercase tracking-[0.2em]">Semantic Distance Matrix</h2>
           <div class="flex items-center gap-3 bg-slate-950 px-4 py-2 rounded border border-slate-800">
-            <span class="text-[10px] font-mono text-slate-500 uppercase tracking-tighter">Heatmap Threshold:</span>
+            <span class="text-[12px] font-mono text-slate-500 uppercase tracking-tighter">Heatmap Threshold:</span>
             <input type="range" id="sim-threshold" min="0" max="1" step="0.01" value="0.8"
               class="w-24 h-1 accent-blue-600 bg-slate-800 rounded-lg appearance-none cursor-pointer">
             <span id="sim-threshold-val"
-              class="text-[10px] font-mono text-blue-400 w-8 text-right font-bold">0.80</span>
+              class="text-[12px] font-mono text-blue-400 w-10 text-right font-bold">0.80</span>
           </div>
         </div>
         <div class="overflow-x-auto bg-slate-950/30 border border-slate-800 rounded-lg shadow-inner">
-          <table id="matrix-table" class="w-full text-left text-[10px] border-collapse font-mono">
+          <table id="matrix-table" class="w-full text-left text-[11px] border-collapse font-mono">
             <thead>
               <tr class="bg-slate-900/80 text-slate-500">
-                <th class="px-4 py-3 border-b border-slate-800 font-bold uppercase tracking-widest">UID</th>
+                <th class="px-5 py-4 border-b border-slate-800 font-bold uppercase tracking-widest text-[12px]">UID</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-800/30">
@@ -155,8 +156,8 @@
     </main>
 
     <!-- Technical Specs -->
-    <footer class="pt-16 border-t border-slate-800 space-y-12">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-12 text-[11px] leading-relaxed">
+    <footer class="pt-20 border-t border-slate-800 space-y-16">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-16 text-sm leading-relaxed">
         <div class="space-y-3">
           <div class="w-6 h-px bg-blue-500"></div>
           <h3 class="font-bold text-slate-400 uppercase tracking-widest">Transformer.js / LLM</h3>
@@ -187,13 +188,13 @@
       </div>
 
       <div
-        class="flex flex-col md:flex-row items-center justify-between gap-4 pt-12 border-t border-slate-800/30 text-[9px] font-mono text-slate-600">
-        <div class="flex gap-6">
+        class="flex flex-col md:flex-row items-center justify-between gap-6 pt-12 border-t border-slate-800/30 text-[12px] font-mono text-slate-600 uppercase">
+        <div class="flex gap-10">
           <span>LATENCY: LOCAL_COMPUTE</span>
           <span>GPU_ACCEL: ENABLED</span>
           <span>COMPILER: RUST_WASM</span>
         </div>
-        <div class="tracking-widest capitalize">
+        <div class="tracking-widest">
           &copy; 2026 Semantic Sequencer // Built for Advanced Agentic Reasoning
         </div>
       </div>
