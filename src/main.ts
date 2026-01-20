@@ -191,7 +191,8 @@ const runSort = async () => {
       });
       
       // Display result
-      renderResult(sortedIndices, entities);
+      renderResult(sortedIndices, entities, embeddings);
+      renderMatrix(entities, embeddings);
       setStatus(`Sorted ${entities.length} entities.`);
     } else {
       setStatus('No solution found.');
@@ -205,20 +206,70 @@ const runSort = async () => {
   }
 }
 
-function renderResult(indices: number[], entities: string[]) {
+function renderResult(indices: number[], entities: string[], embeddings: number[][]) {
   outputList.innerHTML = '';
+  
   indices.forEach((idx, i) => {
+    let distanceInfo = '';
+    // For n > 0, show distance from previous
+    if (i > 0) {
+        const prevIdx = indices[i-1];
+        const dist = getDistance(embeddings[prevIdx], embeddings[idx]);
+        const score = (1 - dist).toFixed(4); // Show similarity score (1-dist) as it's more intuitive 
+        distanceInfo = `<span class="text-xs text-slate-500 ml-auto">Sim: ${score}</span>`;
+    }
+
     const el = document.createElement('div');
-    el.className = 'p-3 bg-slate-700/50 rounded-lg flex items-center gap-3 animate-fade-in';
+    el.className = 'p-3 bg-slate-700/50 rounded-lg flex items-center gap-3 animate-fade-in group hover:bg-slate-700 transition-colors';
     el.innerHTML = `
       <span class="w-6 h-6 rounded-full bg-blue-600/50 flex items-center justify-center text-xs text-blue-200 font-mono">${i+1}</span>
       <span class="text-slate-200">${entities[idx]}</span>
+      ${distanceInfo}
     `;
     // Add tiny delay for animation effect
     el.style.animationDelay = `${i * 50}ms`;
     outputList.appendChild(el);
   });
 }
+
+function renderMatrix(entities: string[], embeddings: number[][]) {
+    const table = document.getElementById('matrix-table') as HTMLTableElement;
+    if (!table) return;
+
+    // Header
+    const thead = table.querySelector('thead tr');
+    if (thead) {
+        thead.innerHTML = '<th class="px-3 py-2"></th>' + entities.map((_, i) => 
+            `<th class="px-3 py-2 font-mono" title="${entities[i]}">${i+1}</th>`
+        ).join('');
+    }
+
+    // Body
+    const tbody = table.querySelector('tbody');
+    if (tbody) {
+        tbody.innerHTML = entities.map((entityA, i) => {
+            const cells = entities.map((entityB, j) => {
+                const dist = getDistance(embeddings[i], embeddings[j]);
+                const sim = (1 - dist).toFixed(3);
+                // Highlight diagonal
+                const bgClass = i === j ? 'bg-slate-700/30 text-white font-bold' : '';
+                // Highlight high similarity
+                const textClass = parseFloat(sim) > 0.8 ? 'text-green-400' : 'text-slate-400';
+                return `<td class="px-3 py-2 font-mono ${bgClass} ${textClass}">${sim}</td>`;
+            }).join('');
+            
+            return `
+                <tr class="border-b border-slate-700/50 hover:bg-slate-700/20">
+                    <td class="px-3 py-2 font-medium text-slate-300 whitespace-nowrap max-w-[150px] truncate" title="${entityA}">
+                        <span class="text-blue-400 font-mono mr-2">${i+1}</span>${entityA}
+                    </td>
+                    ${cells}
+                </tr>
+            `;
+        }).join('');
+    }
+}
+
 
 // Add animation style since we used it
 const style = document.createElement('style');
