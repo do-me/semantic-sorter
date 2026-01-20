@@ -25,7 +25,8 @@ const layerState = {
     arrows: false,
     radius: 8,
     lineWidth: 3,
-    labelSize: 14
+    labelSize: 14,
+    arrowSize: 6
 };
 
 const inputText = document.getElementById('input-text') as HTMLTextAreaElement;
@@ -68,6 +69,7 @@ bindLayerControl('layer-arrows', 'arrows');
 bindLayerControl('param-radius', 'radius');
 bindLayerControl('param-linewidth', 'lineWidth');
 bindLayerControl('param-labelsize', 'labelSize');
+bindLayerControl('param-arrowsize', 'arrowSize');
 
 const btnFullscreen = document.getElementById('btn-fullscreen');
 if (btnFullscreen) {
@@ -221,7 +223,7 @@ function renderMap(sortedIndices: number[], entities: string[], coordinates: num
         if (len > 0.1) {
             const ax = p1[0]+dx*0.6, ay = p1[1]+dy*0.6;
             const ux = dx/len, uy = dy/len, vx = -uy, vy = ux;
-            const sz = Math.max(4, layerState.lineWidth * 2.5);
+            const sz = layerState.arrowSize;
             const bx = ax-ux*sz, by = ay-uy*sz;
             arrowPathData.push({ path: [[bx+vx*sz*0.6, by+vy*sz*0.6], [ax, ay], [bx-vx*sz*0.6, by-vy*sz*0.6]] });
         }
@@ -229,7 +231,7 @@ function renderMap(sortedIndices: number[], entities: string[], coordinates: num
 
     const layers = [];
     if (layerState.lines) layers.push(new PathLayer({ id: 'path-layer', data: pathData, widthMinPixels: 1, getPath: (d: any) => d.path, getColor: [30, 41, 59], getWidth: layerState.lineWidth }));
-    if (layerState.arrows) layers.push(new PathLayer({ id: 'arrow-layer', data: arrowPathData, widthMinPixels: 1, getPath: (d: any) => d.path, getColor: [59, 130, 246], getWidth: Math.max(2, layerState.lineWidth * 0.7), capRounded: true, jointRounded: true }));
+    if (layerState.arrows) layers.push(new PathLayer({ id: 'arrow-layer', data: arrowPathData, widthMinPixels: 1, getPath: (d: any) => d.path, getColor: [59, 130, 246], getWidth: Math.max(1, layerState.arrowSize * 0.3), capRounded: true, jointRounded: true }));
     if (layerState.scores) layers.push(new TextLayer({ id: 'score-layer', data: scoreData, getPosition: (d: any) => d.position, getText: (d: any) => d.text, getSize: 12, getColor: [59, 130, 246], backgroundColor: [11, 15, 26, 220], fontFamily: 'Monospace' }));
     if (layerState.points) layers.push(new ScatterplotLayer({ id: 'scatter-layer', data: pointsData, pickable: true, opacity: 1, stroked: false, filled: true, radiusMinPixels: 4, getPosition: (d: any) => d.position, getFillColor: [37, 99, 235], getRadius: layerState.radius, onClick: (info: any) => info.object && flyToEntity(info.object.index) }));
     if (layerState.labels) layers.push(new TextLayer({ id: 'text-layer', data: pointsData, getPosition: (d: any) => d.position, getText: (d: any) => d.text, getSize: layerState.labelSize, getTextAnchor: 'middle', getAlignmentBaseline: 'center', pixelOffset: [0, -(layerState.radius + layerState.labelSize + 4)], getColor: [255, 255, 255, 160], fontFamily: 'system-ui' }));
