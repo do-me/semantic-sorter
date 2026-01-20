@@ -7,6 +7,22 @@ let worker: Worker | null = null;
 let vrpReady = false;
 let deckInstance: any = null;
 
+// Store current data state for interactive updates
+let currentMapData: {
+    sortedIndices: number[];
+    entities: string[];
+    coordinates: number[][];
+    embeddings: number[][];
+} | null = null;
+
+const layerState = {
+    points: true,
+    lines: true,
+    labels: true,
+    scores: false,
+    arrows: false
+};
+
 const inputText = document.getElementById('input-text') as HTMLTextAreaElement;
 const sortBtn = document.getElementById('sort-btn') as HTMLButtonElement;
 const outputList = document.getElementById('output-list') as HTMLDivElement;
@@ -15,6 +31,25 @@ const matrixTableContainer = document.querySelector('.overflow-x-auto') as HTMLD
 if (matrixTableContainer) {
     matrixTableContainer.classList.add('matrix-tbl-container');
 }
+
+// Bind layer controls
+const bindLayerControl = (id: string, key: keyof typeof layerState) => {
+    const el = document.getElementById(id) as HTMLInputElement;
+    if (el) {
+        el.onchange = (e) => {
+            layerState[key] = (e.target as HTMLInputElement).checked;
+            if (currentMapData) {
+                renderMap(currentMapData.sortedIndices, currentMapData.entities, currentMapData.coordinates);
+            }
+        };
+    }
+};
+
+bindLayerControl('layer-points', 'points');
+bindLayerControl('layer-lines', 'lines');
+bindLayerControl('layer-pt-labels', 'labels');
+bindLayerControl('layer-ln-scores', 'scores');
+bindLayerControl('layer-arrows', 'arrows');
 
 const setStatus = (msg: string) => {
   statusDiv.textContent = msg;
@@ -85,12 +120,51 @@ const runSort = () => {
 
 function handleSorted(payload: any) {
     const { sortedIndices, entities, embeddings, coordinates } = payload;
+    
+    // Store for refreshes and interactions
+    currentMapData = { sortedIndices, entities, embeddings, coordinates };
+    
     renderResult(sortedIndices, entities, embeddings);
     renderMatrix(entities, embeddings);
     renderMap(sortedIndices, entities, coordinates);
     setStatus(`Sorted ${entities.length} entities.`);
     sortBtn.disabled = false;
 }
+
+// Helper to zoom to a specific point by entity index
+function flyToEntity(targetIndex: number) {
+    if (!currentMapData || !deckInstance) return;
+    
+    const { coordinates } = currentMapData;
+
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    coordinates.forEach(c => {
+        minX = Math.min(minX, c[0]);
+        maxX = Math.max(maxX, c[0]);
+        minY = Math.min(minY, c[1]);
+        maxY = Math.max(maxY, c[1]);
+    });
+    
+    const rangeX = maxX - minX || 1;
+    const rangeY = maxY - minY || 1;
+    const scale = 200 / Math.max(rangeX, rangeY);
+    
+    const c = coordinates[targetIndex];
+    if (c) {
+        const scaledX = (c[0] - (minX + maxX)/2) * scale;
+        const scaledY = (c[1] - (minY + maxY)/2) * scale;
+        
+        // Transition view
+        deckInstance.setProps({
+            initialViewState: {
+                target: [scaledX, scaledY, 0],
+                zoom: 3, // Zoom in
+                transitionDuration: 1000
+            }
+        });
+    }
+}
+
 
 function renderMap(sortedIndices: number[], entities: string[], coordinates: number[][]) {
     if (!deckInstance) return;
@@ -123,30 +197,96 @@ function renderMap(sortedIndices: number[], entities: string[], coordinates: num
     }));
 
     const pathData = [];
+    const scoreData = [];
+    const arrowData = [];
+
     for (let i = 0; i < sortedIndices.length - 1; i++) {
         const fromIdx = sortedIndices[i];
         const toIdx = sortedIndices[i+1];
+        
+        const p1 = scaledCoords[fromIdx];
+        const p2 = scaledCoords[toIdx];
+
         pathData.push({
-            path: [scaledCoords[fromIdx], scaledCoords[toIdx]],
+            path: [p1, p2],
             color: [59, 130, 246] // Blue 500
         });
+        
+        // Calculate midpoint for score label
+        const midX = (p1[0] + p2[0]) / 2;
+        const midY = (p1[1] + p2[1]) / 2;
+        
+        // Get score if embeddings are available
+        if (currentMapData && currentMapData.embeddings) {
+            const dist = getDistance(currentMapData.embeddings[fromIdx], currentMapData.embeddings[toIdx]);
+            const score = (1 - dist).toFixed(3);
+            scoreData.push({
+                position: [midX, midY],
+                text: score,
+                bg: [15, 23, 42] // Slate 900
+            });
+        }
+
+        // Arrow direction
+        // Angle in degrees for IconLayer
+        // atan2(y, x) returns radians.
+        const dx = p2[0] - p1[0];
+        const dy = p2[1] - p1[1];
+        const angle = Math.atan2(dy, dx) * 180 / Math.PI; // -180 to 180
+        
+        // Place arrow at 60% of segment
+        arrowData.push({
+            position: [p1[0] + dx * 0.6, p1[1] + dy * 0.6],
+            angle: -angle, 
+            color: [96, 165, 250] // Blue 400
+        });
     }
-    // Loop back to start if it's a closed tour? VRP usually closed. 
-    // Let's see if indices[0] == indices[last]. If not, we might ideally close it.
-    // But let's just draw the path as given.
-    
-    const layers = [
-        new PathLayer({
+
+    const layers = [];
+
+    if (layerState.lines) {
+        layers.push(new PathLayer({
             id: 'path-layer',
             data: pathData,
             pickable: true,
-            widthScale: 2,
+            widthScale: 1,
             widthMinPixels: 2,
             getPath: (d: any) => d.path,
             getColor: (d: any) => d.color,
-            getWidth: (d: any) => 1,
-        }),
-        new ScatterplotLayer({
+            getWidth: (d: any) => 2,
+        }));
+    }
+
+    if (layerState.arrows) {
+        // Use TextLayer for arrows to avoid IconLayer asset mapping complexity
+        layers.push(new TextLayer({
+            id: 'arrow-layer',
+            data: arrowData,
+            getPosition: (d: any) => d.position,
+            getText: () => '➤', 
+            getSize: 16,
+            getAngle: (d: any) => d.angle, 
+            getColor: (d: any) => d.color,
+            getTextAnchor: 'middle',
+            getAlignmentBaseline: 'center'
+        }));
+    }
+
+    if (layerState.scores) {
+        layers.push(new TextLayer({
+            id: 'score-layer',
+            data: scoreData,
+            getPosition: (d: any) => d.position,
+            getText: (d: any) => d.text,
+            getSize: 12,
+            getColor: [148, 163, 184], // Slate 400
+            backgroundColor: [15, 23, 42, 200], // Slate 900 transp
+            fontFamily: 'Monospace'
+        }));
+    }
+
+    if (layerState.points) {
+        layers.push(new ScatterplotLayer({
             id: 'scatter-layer',
             data: pointsData,
             pickable: true,
@@ -154,28 +294,37 @@ function renderMap(sortedIndices: number[], entities: string[], coordinates: num
             stroked: true,
             filled: true,
             radiusScale: 1,
-            radiusMinPixels: 5,
+            radiusMinPixels: 6,
             radiusMaxPixels: 20,
-            lineWidthMinPixels: 1,
+            lineWidthMinPixels: 2,
             getPosition: (d: any) => d.position,
             getFillColor: (d: any) => d.color,
-            getLineColor: (d: any) => [0, 0, 0],
-            getRadius: 5
-        }),
-        new TextLayer({
+            getLineColor: (d: any) => [255, 255, 255],
+            getRadius: 5,
+            onClick: (info: any) => {
+                 if(info.object) flyToEntity(info.object.index);
+            }
+        }));
+    }
+
+    if (layerState.labels) {
+        layers.push(new TextLayer({
             id: 'text-layer',
             data: pointsData,
-            pickable: true,
+            pickable: false,
             getPosition: (d: any) => d.position,
             getText: (d: any) => d.text,
-            getSize: 16,
+            getSize: 14,
             getAngle: 0,
             getTextAnchor: 'middle',
             getAlignmentBaseline: 'center',
-            pixelOffset: [0, -15],
-            getColor: [255, 255, 255, 200]
-        })
-    ];
+            pixelOffset: [0, -18],
+            getColor: [255, 255, 255, 220],
+            fontWeight: 'bold',
+            outlineWidth: 2,
+            outlineColor: [15, 23, 42]
+        }));
+    }
 
     deckInstance.setProps({
         layers: layers,
@@ -186,7 +335,6 @@ function renderMap(sortedIndices: number[], entities: string[], coordinates: num
         }
     });
 }
-
 
 // Re-implement helper for frontend display only
 function cosineSimilarity(a: number[], b: number[]) {
@@ -219,12 +367,15 @@ function renderResult(indices: number[], entities: string[], embeddings: number[
     }
 
     const el = document.createElement('div');
-    el.className = 'p-3 bg-slate-700/50 rounded-lg flex items-center gap-3 animate-fade-in group hover:bg-slate-700 transition-colors';
+    el.className = 'p-3 bg-slate-700/50 rounded-lg flex items-center gap-3 animate-fade-in group hover:bg-slate-700 transition-colors cursor-pointer';
     el.innerHTML = `
       <span class="w-6 h-6 rounded-full bg-blue-600/50 flex items-center justify-center text-xs text-blue-200 font-mono">${i+1}</span>
       <span class="text-slate-200">${entities[idx]}</span>
       ${distanceInfo}
     `;
+    // Click to zoom to this entity on the map
+    el.onclick = () => flyToEntity(idx);
+    
     el.style.animationDelay = `${i * 50}ms`;
     outputList.appendChild(el);
   });
@@ -248,8 +399,6 @@ function renderMatrix(entities: string[], embeddings: number[][]) {
     // Body
     const tbody = table.querySelector('tbody');
     if (tbody) {
-        // Prepare HTML string
-        // Note: setting style="--sim: ..." allows CSS to do the coloring
         tbody.innerHTML = entities.map((entityA, i) => {
             const cells = entities.map((entityB, j) => {
                 const dist = getDistance(embeddings[i], embeddings[j]);
@@ -261,13 +410,22 @@ function renderMatrix(entities: string[], embeddings: number[][]) {
             
             return `
                 <tr class="border-b border-slate-700/50 hover:bg-slate-700/20">
-                    <td class="px-3 py-2 font-medium text-slate-300 whitespace-nowrap max-w-[150px] truncate" title="${entityA}">
+                    <td class="px-3 py-2 font-medium text-slate-300 whitespace-nowrap max-w-[150px] truncate cursor-pointer hover:text-blue-300 transition-colors" title="Click to zoom on map" onclick="window.dispatchEvent(new CustomEvent('flyTo', {detail: ${i}}))">
                         <span class="text-blue-400 font-mono mr-2">${i+1}</span>${entityA}
                     </td>
                     ${cells}
                 </tr>
             `;
         }).join('');
+    }
+    
+    // Feature: Attach global listener because inline onclick passes attributes as strings
+    // We used window for simplicity in this generated table architecture.
+    if (!window['flyToListenerAttached' as any]) {
+        window.addEventListener('flyTo', (e: any) => {
+            flyToEntity(e.detail);
+        });
+        (window as any)['flyToListenerAttached'] = true;
     }
     
     // Initial color update
