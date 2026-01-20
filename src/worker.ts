@@ -1,5 +1,6 @@
 import { pipeline, env } from '@huggingface/transformers';
 import init, { solve_pragmatic, get_routing_locations } from './vrp-pkg/vrp_cli.js';
+import { UMAP } from 'umap-js';
 
 // Configure env
 env.allowLocalModels = false;
@@ -61,10 +62,22 @@ const runSort = async (entities: string[]) => {
         // 1. Get embeddings
         const output = await extractor(entities, { pooling: 'mean', normalize: true });
         const embeddings = output.tolist();
+        
+        ctx.postMessage({ type: 'STATUS', payload: 'Projecting with UMAP (2D)...' });
+        
+        // 2. UMAP Projection
+        const umap = new UMAP({
+            nComponents: 2,
+            nNeighbors: Math.min(15, entities.length - 1), // Adjust for small datasets
+            minDist: 0.1,
+            spread: 1.0,
+        });
+        
+        const coordinates = umap.fit(embeddings);
 
         ctx.postMessage({ type: 'STATUS', payload: 'Calculating distance matrix...' });
 
-        // 2. Prepare VRP
+        // 3. Prepare VRP
         const jobs = entities.map((_, idx) => ({
             id: `job_${idx}`,
             deliveries: [{
@@ -95,7 +108,7 @@ const runSort = async (entities: string[]) => {
             }
         };
 
-        // 3. Routing Locations & Matrix
+        // 4. Routing Locations & Matrix
         // Note: We need to parse WASM output JSON
         const routingLocationsStr = get_routing_locations(problem);
         const routingLocations = JSON.parse(routingLocationsStr);
@@ -153,6 +166,7 @@ const runSort = async (entities: string[]) => {
                 payload: {
                     sortedIndices,
                     embeddings,
+                    coordinates, // 2D array [ [x, y], ... ]
                     entities 
                 }
             });

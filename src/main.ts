@@ -1,8 +1,11 @@
 import './style.css'
 import Worker from './worker?worker'
+import { Deck, OrthographicView } from '@deck.gl/core';
+import { ScatterplotLayer, PathLayer, TextLayer } from '@deck.gl/layers';
 
 let worker: Worker | null = null;
 let vrpReady = false;
+let deckInstance: any = null;
 
 const inputText = document.getElementById('input-text') as HTMLTextAreaElement;
 const sortBtn = document.getElementById('sort-btn') as HTMLButtonElement;
@@ -19,6 +22,9 @@ const setStatus = (msg: string) => {
 
 const initialize = async () => {
     setStatus('Initializing Worker & Loading Models...');
+    
+    // Initialize DeckGL
+    initDeck();
     
     worker = new Worker();
     
@@ -38,9 +44,25 @@ const initialize = async () => {
             handleSorted(payload);
         }
     };
-    
-    // Worker starts init automatically on load, but we can verify or trigger specific init if needed.
-    // Our worker calls initialize() at the end of the file, so it starts immediately.
+}
+
+function initDeck() {
+    deckInstance = new Deck({
+        canvas: 'deck-canvas',
+        width: '100%',
+        height: '100%',
+        initialViewState: {
+            target: [0, 0, 0],
+            zoom: 1
+        },
+        controller: true,
+        // Use OrthographicView for non-geospatial 2D coordinates
+        views: new OrthographicView({
+            id: 'ortho', 
+            controller: true
+        }),
+        layers: []
+    });
 }
 
 
@@ -62,12 +84,109 @@ const runSort = () => {
 }
 
 function handleSorted(payload: any) {
-    const { sortedIndices, entities, embeddings } = payload;
+    const { sortedIndices, entities, embeddings, coordinates } = payload;
     renderResult(sortedIndices, entities, embeddings);
     renderMatrix(entities, embeddings);
+    renderMap(sortedIndices, entities, coordinates);
     setStatus(`Sorted ${entities.length} entities.`);
     sortBtn.disabled = false;
 }
+
+function renderMap(sortedIndices: number[], entities: string[], coordinates: number[][]) {
+    if (!deckInstance) return;
+
+    // Normalize coordinates to fit in view roughly -200 to 200
+    // Find bounds
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    coordinates.forEach(c => {
+        minX = Math.min(minX, c[0]);
+        maxX = Math.max(maxX, c[0]);
+        minY = Math.min(minY, c[1]);
+        maxY = Math.max(maxY, c[1]);
+    });
+    
+    const rangeX = maxX - minX || 1;
+    const rangeY = maxY - minY || 1;
+    const scale = 200 / Math.max(rangeX, rangeY);
+    
+    const scaledCoords = coordinates.map(c => [
+        (c[0] - (minX + maxX)/2) * scale,
+        (c[1] - (minY + maxY)/2) * scale
+    ]);
+
+    // Data for layers
+    const pointsData = scaledCoords.map((c, i) => ({
+        position: c,
+        text: entities[i],
+        color: [74, 222, 128], // Green 400
+        index: i
+    }));
+
+    const pathData = [];
+    for (let i = 0; i < sortedIndices.length - 1; i++) {
+        const fromIdx = sortedIndices[i];
+        const toIdx = sortedIndices[i+1];
+        pathData.push({
+            path: [scaledCoords[fromIdx], scaledCoords[toIdx]],
+            color: [59, 130, 246] // Blue 500
+        });
+    }
+    // Loop back to start if it's a closed tour? VRP usually closed. 
+    // Let's see if indices[0] == indices[last]. If not, we might ideally close it.
+    // But let's just draw the path as given.
+    
+    const layers = [
+        new PathLayer({
+            id: 'path-layer',
+            data: pathData,
+            pickable: true,
+            widthScale: 2,
+            widthMinPixels: 2,
+            getPath: (d: any) => d.path,
+            getColor: (d: any) => d.color,
+            getWidth: (d: any) => 1,
+        }),
+        new ScatterplotLayer({
+            id: 'scatter-layer',
+            data: pointsData,
+            pickable: true,
+            opacity: 0.8,
+            stroked: true,
+            filled: true,
+            radiusScale: 1,
+            radiusMinPixels: 5,
+            radiusMaxPixels: 20,
+            lineWidthMinPixels: 1,
+            getPosition: (d: any) => d.position,
+            getFillColor: (d: any) => d.color,
+            getLineColor: (d: any) => [0, 0, 0],
+            getRadius: 5
+        }),
+        new TextLayer({
+            id: 'text-layer',
+            data: pointsData,
+            pickable: true,
+            getPosition: (d: any) => d.position,
+            getText: (d: any) => d.text,
+            getSize: 16,
+            getAngle: 0,
+            getTextAnchor: 'middle',
+            getAlignmentBaseline: 'center',
+            pixelOffset: [0, -15],
+            getColor: [255, 255, 255, 200]
+        })
+    ];
+
+    deckInstance.setProps({
+        layers: layers,
+        // Reset view to center on data
+        initialViewState: {
+             target: [0, 0, 0],
+             zoom: 1
+        }
+    });
+}
+
 
 // Re-implement helper for frontend display only
 function cosineSimilarity(a: number[], b: number[]) {

@@ -13,10 +13,20 @@
     "vite": "^5.4.11"
   },
   "dependencies": {
+    "@deck.gl/core": "^9.2.6",
+    "@deck.gl/layers": "^9.2.6",
+    "@deck.gl/mesh-layers": "^9.2.6",
     "@huggingface/transformers": "^3.8.1",
+    "@luma.gl/core": "^9.2.6",
+    "@luma.gl/engine": "^9.2.6",
+    "@luma.gl/webgl": "^9.2.6",
+    "@maplibre/maplibre-gl-style-spec": "^24.4.1",
     "@tailwindcss/vite": "^4.1.18",
     "autoprefixer": "^10.4.23",
+    "deck.gl": "^9.2.6",
+    "maplibre-gl": "^5.16.0",
     "postcss": "^8.5.6",
-    "tailwindcss": "^4.1.18"
+    "tailwindcss": "^4.1.18",
+    "umap-js": "^1.4.0"
   }
 }

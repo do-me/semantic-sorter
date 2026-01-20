@@ -21,3 +21,17 @@
     /* Transparent to Green with 20% opacity */
     background-color: color-mix(in srgb, transparent, rgba(74, 222, 128, 0.2) calc(var(--is-highlight) * 100%));
 }
+
+#deck-container {
+    height: 600px;
+    width: 100%;
+    position: relative;
+    background-color: #0f172a;
+    /* Slate 900 */
+    border: 1px solid #334155;
+    /* Slate 700 */
+    border-radius: 0.75rem;
+    /* rounded-xl */
+    overflow: hidden;
+    margin-top: 2rem;
+}
