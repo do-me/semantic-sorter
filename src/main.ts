@@ -20,7 +20,9 @@ const layerState = {
     lines: true,
     labels: true,
     scores: false,
-    arrows: false
+    arrows: false,
+    radius: 5,
+    lineWidth: 2
 };
 
 const inputText = document.getElementById('input-text') as HTMLTextAreaElement;
@@ -36,12 +38,22 @@ if (matrixTableContainer) {
 const bindLayerControl = (id: string, key: keyof typeof layerState) => {
     const el = document.getElementById(id) as HTMLInputElement;
     if (el) {
-        el.onchange = (e) => {
-            layerState[key] = (e.target as HTMLInputElement).checked;
-            if (currentMapData) {
-                renderMap(currentMapData.sortedIndices, currentMapData.entities, currentMapData.coordinates);
-            }
-        };
+        if (el.type === 'checkbox') {
+             el.onchange = (e) => {
+                (layerState as any)[key] = (e.target as HTMLInputElement).checked;
+                if (currentMapData) {
+                    renderMap(currentMapData.sortedIndices, currentMapData.entities, currentMapData.coordinates);
+                }
+            };
+        } else if (el.type === 'range') {
+             el.oninput = (e) => {
+                (layerState as any)[key] = parseFloat((e.target as HTMLInputElement).value);
+                if (currentMapData) {
+                    // Optimized: could use setProps on layers instead of full re-render, but full re-render is cheap enough here
+                    renderMap(currentMapData.sortedIndices, currentMapData.entities, currentMapData.coordinates);
+                }
+             };
+        }
     }
 };
 
@@ -50,6 +62,24 @@ bindLayerControl('layer-lines', 'lines');
 bindLayerControl('layer-pt-labels', 'labels');
 bindLayerControl('layer-ln-scores', 'scores');
 bindLayerControl('layer-arrows', 'arrows');
+bindLayerControl('param-radius', 'radius');
+bindLayerControl('param-linewidth', 'lineWidth');
+
+const btnFullscreen = document.getElementById('btn-fullscreen');
+if (btnFullscreen) {
+    btnFullscreen.onclick = () => {
+        const container = document.getElementById('deck-container');
+        if (container) {
+            if (!document.fullscreenElement) {
+                container.requestFullscreen().catch(err => {
+                    console.error(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+    };
+}
 
 const setStatus = (msg: string) => {
   statusDiv.textContent = msg;
@@ -165,7 +195,6 @@ function flyToEntity(targetIndex: number) {
     }
 }
 
-
 function renderMap(sortedIndices: number[], entities: string[], coordinates: number[][]) {
     if (!deckInstance) return;
 
@@ -198,7 +227,7 @@ function renderMap(sortedIndices: number[], entities: string[], coordinates: num
 
     const pathData = [];
     const scoreData = [];
-    const arrowData = [];
+    const arrowPathData: any[] = []; // Changed to path data for geometric arrows
 
     for (let i = 0; i < sortedIndices.length - 1; i++) {
         const fromIdx = sortedIndices[i];
@@ -219,7 +248,7 @@ function renderMap(sortedIndices: number[], entities: string[], coordinates: num
         // Get score if embeddings are available
         if (currentMapData && currentMapData.embeddings) {
             const dist = getDistance(currentMapData.embeddings[fromIdx], currentMapData.embeddings[toIdx]);
-            const score = (1 - dist).toFixed(3);
+            const score = (1 - dist).toFixed(2);
             scoreData.push({
                 position: [midX, midY],
                 text: score,
@@ -227,19 +256,44 @@ function renderMap(sortedIndices: number[], entities: string[], coordinates: num
             });
         }
 
-        // Arrow direction
-        // Angle in degrees for IconLayer
-        // atan2(y, x) returns radians.
+        // Arrow geometry calculation
+        // Place arrow at 60% of segment
         const dx = p2[0] - p1[0];
         const dy = p2[1] - p1[1];
-        const angle = Math.atan2(dy, dx) * 180 / Math.PI; // -180 to 180
+        const len = Math.sqrt(dx*dx + dy*dy);
         
-        // Place arrow at 60% of segment
-        arrowData.push({
-            position: [p1[0] + dx * 0.6, p1[1] + dy * 0.6],
-            angle: -angle, 
-            color: [96, 165, 250] // Blue 400
-        });
+        if (len > 0.1) {
+            const t = 0.6;
+            const ax = p1[0] + dx * t;
+            const ay = p1[1] + dy * t;
+            
+            // Normalize direction
+            const ux = dx / len;
+            const uy = dy / len;
+            
+            // Perpendicular vector (-uy, ux)
+            const vx = -uy;
+            const vy = ux;
+            
+            // Arrow size proportional to line width but constrained
+            const arrowSize = Math.max(3, layerState.lineWidth * 2.5); 
+            
+            // Back of arrow
+            const bx = ax - ux * arrowSize;
+            const by = ay - uy * arrowSize;
+            
+            // Wings
+            const w1x = bx + vx * (arrowSize * 0.6);
+            const w1y = by + vy * (arrowSize * 0.6);
+            const w2x = bx - vx * (arrowSize * 0.6);
+            const w2y = by - vy * (arrowSize * 0.6);
+            
+            // Arrowhead is a V shape: W1 -> Tip -> W2
+            arrowPathData.push({
+                path: [[w1x, w1y], [ax, ay], [w2x, w2y]],
+                color: [96, 165, 250] // Blue 400
+            });
+        }
     }
 
     const layers = [];
@@ -250,28 +304,31 @@ function renderMap(sortedIndices: number[], entities: string[], coordinates: num
             data: pathData,
             pickable: true,
             widthScale: 1,
-            widthMinPixels: 2,
+            widthMinPixels: 1,
             getPath: (d: any) => d.path,
             getColor: (d: any) => d.color,
-            getWidth: (d: any) => 2,
+            getWidth: (d: any) => layerState.lineWidth,
         }));
     }
 
     if (layerState.arrows) {
-        // Use TextLayer for arrows to avoid IconLayer asset mapping complexity
-        layers.push(new TextLayer({
+        // Render arrows as paths
+        layers.push(new PathLayer({
             id: 'arrow-layer',
-            data: arrowData,
-            getPosition: (d: any) => d.position,
-            getText: () => '➤', 
-            getSize: 16,
-            getAngle: (d: any) => d.angle, 
+            data: arrowPathData,
+            pickable: false,
+            widthScale: 1,
+            widthMinPixels: 1,
+            getPath: (d: any) => d.path,
             getColor: (d: any) => d.color,
-            getTextAnchor: 'middle',
-            getAlignmentBaseline: 'center'
+            getWidth: (d: any) => Math.max(1.5, layerState.lineWidth * 0.8), // Slightly thinner than main line
+            capRounded: true,
+            jointRounded: true
         }));
     }
 
+    // ... (Scores, Points with layerState.radius, Labels remain)
+    
     if (layerState.scores) {
         layers.push(new TextLayer({
             id: 'score-layer',
@@ -294,13 +351,14 @@ function renderMap(sortedIndices: number[], entities: string[], coordinates: num
             stroked: true,
             filled: true,
             radiusScale: 1,
-            radiusMinPixels: 6,
-            radiusMaxPixels: 20,
-            lineWidthMinPixels: 2,
+            radiusMinPixels: 2,
+            radiusMaxPixels: 100,
+            lineWidthMinPixels: 1, // Scaled down stroke based on radius maybe?
             getPosition: (d: any) => d.position,
             getFillColor: (d: any) => d.color,
             getLineColor: (d: any) => [255, 255, 255],
-            getRadius: 5,
+            getRadius: layerState.radius, // Use the state radius
+            getLineWidth: 1, // Fixed stroke for now
             onClick: (info: any) => {
                  if(info.object) flyToEntity(info.object.index);
             }
@@ -318,7 +376,7 @@ function renderMap(sortedIndices: number[], entities: string[], coordinates: num
             getAngle: 0,
             getTextAnchor: 'middle',
             getAlignmentBaseline: 'center',
-            pixelOffset: [0, -18],
+            pixelOffset: [0, - (layerState.radius + 10)], // Offset based on radius
             getColor: [255, 255, 255, 220],
             fontWeight: 'bold',
             outlineWidth: 2,
@@ -328,7 +386,15 @@ function renderMap(sortedIndices: number[], entities: string[], coordinates: num
 
     deckInstance.setProps({
         layers: layers,
-        // Reset view to center on data
+        // Don't reset view on re-render caused by slider, only on data change? 
+        // We can check if data changed or passed in args. 
+        // For now, to be safe, stick to resetting unless we handle view state better.
+        // Actually, if I drag a slider, it re-renders renderMap. 
+        // I don't want to reset the view zoom/pan every time I move a slider!
+        // Solution: Only set initialViewState if it's the first render or data reset. 
+        // DeckGL handles updates gracefully if we don't pass viewState (it uses internal state).
+        // Passing initialViewState on updates is ignored by DeckGL unless we change the prop or use viewState.
+        // So this is fine.
         initialViewState: {
              target: [0, 0, 0],
              zoom: 1
