@@ -26,7 +26,8 @@ const layerState = {
     radius: 8,
     lineWidth: 3,
     labelSize: 14,
-    arrowSize: 6
+    arrowSize: 6,
+    deduplicate: true
 };
 
 const inputText = document.getElementById('input-text') as HTMLTextAreaElement;
@@ -70,6 +71,7 @@ bindLayerControl('param-radius', 'radius');
 bindLayerControl('param-linewidth', 'lineWidth');
 bindLayerControl('param-labelsize', 'labelSize');
 bindLayerControl('param-arrowsize', 'arrowSize');
+bindLayerControl('param-dedupe', 'deduplicate');
 
 const btnFullscreen = document.getElementById('btn-fullscreen');
 if (btnFullscreen) {
@@ -149,7 +151,14 @@ const runSort = () => {
   if (!worker || !vrpReady) return;
   const text = inputText.value.trim();
   if (!text) return;
-  const entities = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  let entities = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  if (layerState.deduplicate) {
+    const originalCount = entities.length;
+    entities = [...new Set(entities)];
+    if (entities.length < originalCount) {
+        console.log(`Deduplicated: ${originalCount} -> ${entities.length}`);
+    }
+  }
   if (entities.length < 2) {
     setStatus('VALIDATION_ERROR: NULL_SET_OR_INSUFFICIENT_NODES');
     return;

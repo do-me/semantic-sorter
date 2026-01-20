@@ -35,7 +35,13 @@
         <div class="space-y-4">
           <div class="flex items-center justify-between">
             <h2 class="text-[13px] font-bold text-slate-500 uppercase tracking-[0.2em]">Data Ingest</h2>
-            <span class="text-[12px] text-slate-600 font-mono">TEXT_AREA_LOADED</span>
+            <div class="flex items-center gap-4">
+              <label
+                class="flex items-center gap-2 cursor-pointer text-[11px] font-mono text-slate-500 hover:text-blue-400">
+                <input type="checkbox" id="param-dedupe" checked class="accent-blue-600"> DEDUPE
+              </label>
+              <span class="text-[12px] text-slate-600 font-mono">TEXT_AREA_LOADED</span>
+            </div>
           </div>
           <div class="relative group">
             <textarea id="input-text"
