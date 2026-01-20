@@ -151,15 +151,14 @@ function renderMatrix(entities: string[], embeddings: number[][]) {
         }).join('');
     }
     
-    // Handle Slider (CSS Variable Update)
+    // Initial color update
     if (thresholdInput) {
         // Initial set
         const updateThreshold = (val: number) => {
              thresholdVal.textContent = val.toFixed(2);
-             if (matrixTableContainer) {
-                 // Update the CSS variable on the container
-                 // This propagates to all children cells instantly via CSS engine
-                 matrixTableContainer.style.setProperty('--threshold', val.toString());
+             if (table.parentElement) {
+                 // Ensure we target the .matrix-tbl-container which is likely the parent
+                 table.parentElement.style.setProperty('--threshold', val.toString());
              }
         };
 

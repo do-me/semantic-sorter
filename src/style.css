@@ -5,15 +5,19 @@
 }
 
 .matrix-cell {
-    /* Calculate a switch value: 0 if sim < threshold, 1 if sim >= threshold */
-    /* (sim - threshold) will be positive if match  */
-    /* Multiply by huge number to saturate to 1 or 0 (via clamp) */
-    --is-highlight: clamp(0., (var(--sim) - var(--threshold)) * 99999., 1.);
+    /* Calculate diff using calc, ensure spaces around operators */
+    /* Using 0 and 1 without invalid trailing dots */
+    --diff: calc(var(--sim) - var(--threshold));
 
-    /* Fallback */
-    color: theme('colors.slate.400');
+    /* Amplify diff to push values to effectively -infinity or +infinity */
+    --amplified: calc(var(--diff) * 100000);
 
-    /* Modern switch */
-    color: color-mix(in srgb, theme('colors.slate.400'), theme('colors.green.400') calc(var(--is-highlight) * 100%));
-    background-color: color-mix(in srgb, transparent, rgba(20, 83, 45, 0.3) calc(var(--is-highlight) * 100%));
+    /* Clamp between 0 and 1 to create a binary switch (0 for < threshold, 1 for >= threshold) */
+    --is-highlight: clamp(0, var(--amplified), 1);
+
+    /* Slate 400 (#94a3b8) to Green 400 (#4ade80) */
+    color: color-mix(in srgb, #94a3b8, #4ade80 calc(var(--is-highlight) * 100%));
+
+    /* Transparent to Green with 20% opacity */
+    background-color: color-mix(in srgb, transparent, rgba(74, 222, 128, 0.2) calc(var(--is-highlight) * 100%));
 }
