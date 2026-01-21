@@ -16,6 +16,8 @@ let currentMapData: {
 } | null = null;
 
 let sortStartTime = 0;
+let lastInitializedModel = '';
+let lastInitializedDevice = '';
 
 const layerState = {
     points: true,
@@ -110,19 +112,37 @@ const setStatus = (msg: string) => {
 const initialize = async () => {
     setStatus('SYSTEM_INITIALIZING: ATTACHING_WORKER_CORE');
     initDeck();
+    
+    // Auto-detect WebGPU
+    const webgpuAvailable = !!(navigator as any).gpu;
+    const gpuCheck = document.getElementById('param-webgpu') as HTMLInputElement;
+    if (gpuCheck) {
+        gpuCheck.checked = webgpuAvailable;
+    }
+
     worker = new Worker();
     worker.onmessage = (e) => {
         const { type, payload } = e.data;
         if (type === 'READY') {
             vrpReady = true;
+            const modelInput = document.getElementById('model-name') as HTMLInputElement;
+            const gpuCheck = document.getElementById('param-webgpu') as HTMLInputElement;
+            lastInitializedModel = modelInput?.value || '';
+            lastInitializedDevice = gpuCheck?.checked ? 'webgpu' : 'wasm';
+            
             setStatus('SYSTEM_READY: COMPUTE_DOCK_ESTABLISHED');
             sortBtn.disabled = false;
+            // If we have pending data to sort, run it now
+            if (inputText.value.trim()) {
+                runSort();
+            }
         } else if (type === 'STATUS') {
             setStatus(`TASK_PROGRESS: ${String(payload).toUpperCase()}`);
         } else if (type === 'ERROR') {
             console.error(payload);
             setStatus(`FATAL_EXCEPTION: ${payload}`);
             sortBtn.disabled = false;
+            vrpReady = false; // Allow retry
         } else if (type === 'SORTED') {
             handleSorted(payload);
         }
@@ -148,7 +168,22 @@ function initDeck() {
 }
 
 const runSort = () => {
-  if (!worker || !vrpReady) return;
+  if (!worker) return;
+
+  const modelInput = document.getElementById('model-name') as HTMLInputElement;
+  const gpuCheck = document.getElementById('param-webgpu') as HTMLInputElement;
+  const modelName = modelInput?.value || 'mixedbread-ai/mxbai-embed-xsmall-v1';
+  const device = gpuCheck?.checked ? 'webgpu' : 'wasm';
+
+  // Check if we need to re-init
+  if (!vrpReady || modelName !== lastInitializedModel || device !== lastInitializedDevice) {
+      vrpReady = false;
+      sortBtn.disabled = true;
+      setStatus('PIPELINE_INIT: LOADING_MODEL_ENGINE');
+      worker.postMessage({ type: 'INIT', payload: { modelName, device } });
+      return;
+  }
+
   const text = inputText.value.trim();
   if (!text) return;
   let entities = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);

@@ -14,18 +14,17 @@ let vrpReady = false;
 
 const ctx: Worker = self as any;
 
-const initialize = async () => {
+const initialize = async (modelName: string = 'mixedbread-ai/mxbai-embed-xsmall-v1', device: string = 'wasm') => {
     try {
-        await init();
-        vrpReady = true;
+        if (!vrpReady) {
+            await init();
+            vrpReady = true;
+        }
         
-        // Using WebGPU
-        // We need to check if WebGPU is supported in worker context (usually yes in modern browsers)
-        extractor = await pipeline('feature-extraction',
-             'mixedbread-ai/mxbai-embed-xsmall-v1',
-             //'thomasht86/KaLM-embedding-multilingual-mini-instruct-v2.5-ONNX',
-              {
-            //device: 'webgpu',
+        ctx.postMessage({ type: 'STATUS', payload: `Loading model: ${modelName} on ${device}...` });
+        
+        extractor = await pipeline('feature-extraction', modelName, {
+            device: device as any,
             dtype: 'fp32',
         });
         
@@ -189,10 +188,9 @@ const runSort = async (entities: string[]) => {
 ctx.onmessage = (e) => {
     const { type, payload } = e.data;
     if (type === 'INIT') {
-        initialize();
+        initialize(payload.modelName, payload.device);
     } else if (type === 'SORT') {
         runSort(payload);
     }
 };
 
-initialize();
