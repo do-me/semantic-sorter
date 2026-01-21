@@ -261,7 +261,7 @@ function renderResult(indices: number[], entities: string[], embeddings: number[
         const sim = i > 0 ? (1 - getDistance(embeddings[indices[i-1]], embeddings[idx])).toFixed(4) : '';
         const el = document.createElement('div');
         el.className = 'p-3 bg-slate-950/40 border border-slate-800/40 rounded flex items-center gap-4 animate-fade-in group hover:bg-slate-900 transition-all cursor-pointer hover:border-blue-500/30';
-        el.innerHTML = `<span class="text-[11px] text-slate-700 font-mono w-5">${(i+1).toString().padStart(2, '0')}</span><span class="text-slate-300 text-sm truncate max-w-[320px] font-medium">${entities[idx]}</span>${sim ? `<span class="text-[11px] text-slate-700 font-mono ml-auto tracking-tighter">SIM_${sim}</span>` : ''}`;
+        el.innerHTML = `<span class="text-[11px] text-slate-700 font-mono w-5 shrink-0">${(i+1).toString().padStart(2, '0')}</span><span class="text-slate-300 text-sm font-medium overflow-x-auto whitespace-nowrap scrollbar-none">${entities[idx]}</span>${sim ? `<span class="text-[11px] text-slate-700 font-mono ml-auto tracking-tighter shrink-0">SIM_${sim}</span>` : ''}`;
         el.onclick = () => flyToEntity(idx);
         el.style.animationDelay = `${i * 20}ms`;
         outputList.appendChild(el);
