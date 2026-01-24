@@ -99,7 +99,7 @@ if (copyBtn) {
             .join('\n');
         navigator.clipboard.writeText(text).then(() => {
             const originalHTML = copyBtn.innerHTML;
-            copyBtn.innerHTML = 'SYNCED_TO_CLIPBOARD';
+            copyBtn.innerHTML = 'Copied!';
             setTimeout(() => { copyBtn.innerHTML = originalHTML; }, 2000);
         });
     };
@@ -110,7 +110,7 @@ const setStatus = (msg: string) => {
 }
 
 const initialize = async () => {
-    setStatus('SYSTEM_INITIALIZING: ATTACHING_WORKER_CORE');
+    setStatus('Initializing...');
     initDeck();
     
     // Auto-detect WebGPU
@@ -130,17 +130,17 @@ const initialize = async () => {
             lastInitializedModel = modelInput?.value || '';
             lastInitializedDevice = gpuCheck?.checked ? 'webgpu' : 'wasm';
             
-            setStatus('SYSTEM_READY: COMPUTE_DOCK_ESTABLISHED');
+            setStatus('Ready');
             sortBtn.disabled = false;
             // If we have pending data to sort, run it now
             if (inputText.value.trim()) {
                 runSort();
             }
         } else if (type === 'STATUS') {
-            setStatus(`TASK_PROGRESS: ${String(payload).toUpperCase()}`);
+            setStatus(`Progress: ${String(payload).toLowerCase()}`);
         } else if (type === 'ERROR') {
             console.error(payload);
-            setStatus(`FATAL_EXCEPTION: ${payload}`);
+            setStatus(`Error: ${payload}`);
             sortBtn.disabled = false;
             vrpReady = false; // Allow retry
         } else if (type === 'SORTED') {
@@ -179,7 +179,7 @@ const runSort = () => {
   if (!vrpReady || modelName !== lastInitializedModel || device !== lastInitializedDevice) {
       vrpReady = false;
       sortBtn.disabled = true;
-      setStatus('PIPELINE_INIT: LOADING_MODEL_ENGINE');
+      setStatus('Loading model...');
       worker.postMessage({ type: 'INIT', payload: { modelName, device } });
       return;
   }
@@ -195,11 +195,11 @@ const runSort = () => {
     }
   }
   if (entities.length < 2) {
-    setStatus('VALIDATION_ERROR: NULL_SET_OR_INSUFFICIENT_NODES');
+    setStatus('Error: insufficient nodes');
     return;
   }
   sortBtn.disabled = true;
-  setStatus('PIPELINE_START: DISTRIBUTING_WORKLOAD');
+  setStatus('Processing...');
   sortStartTime = performance.now();
   worker.postMessage({ type: 'SORT', payload: entities });
 }
@@ -212,7 +212,7 @@ function handleSorted(payload: any) {
     renderResult(sortedIndices, entities, embeddings);
     renderMatrix(entities, embeddings);
     renderMap(sortedIndices, entities, coordinates);
-    setStatus(`OPTM_COMPLETE: ${entities.length} NODES // TOTAL: ${durationMs.toFixed(0)}MS // UNIT: ${perEntityMs.toFixed(1)}MS/NODE`);
+    setStatus(`Complete: ${entities.length} nodes // Total: ${durationMs.toFixed(0)}ms // Unit: ${perEntityMs.toFixed(1)}ms/node`);
     sortBtn.disabled = false;
 }
 

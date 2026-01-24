@@ -14,18 +14,26 @@
     <header class="space-y-4 border-b border-slate-800 pb-8">
       <div class="flex items-center justify-between">
         <h1 class="text-4xl font-bold tracking-tight text-white flex items-center gap-4">
-          <span
-            class="bg-blue-600 w-10 h-10 rounded flex items-center justify-center text-lg italic font-serif">S</span>
           Semantic Sorter
         </h1>
         <div class="flex items-center gap-4">
-          <span
-            class="text-[12px] font-mono text-slate-500 uppercase tracking-widest border border-slate-800 px-3 py-1.5 rounded bg-slate-900/50">ENGINE_PRO_v1.0</span>
         </div>
       </div>
       <p class="text-slate-400 max-w-3xl leading-relaxed text-base">
-        Enterprise-grade semantic sequencing for unstructured datasets. Projects high-dimensional embeddings into metric
-        space and resolves optimal pathing via heuristic TSP solvers.
+        A semantic sorting approach based on embeddings, a distance matrix between entities (cosine distances) and a
+        solver,
+        originally developed for solving vehicle routing problems (VRP) like the Traveling Salesman Problem (TSP).
+        The matrix is visualized as table and the embeddings are reduced in their dimensionality via UMAP to plot them
+        on a 2D plane.
+        Just paste a new-line separated list of words or terms into the text field and optimize.
+        Results are usually quite good but not perfect as it is yet lacking a "tree-based" approach where large topic
+        clusters are
+        identified first. I had this idea for a while and simply needed to get it out of my system.
+        If you'd like to contribute, I'm happy to merge creative PRs!
+        The tech stack really sums up my geospatial and NLP interests: transformers.js, onnx, umap, vrp, deck.gl.
+        Developed by <a href="https://github.com/do-me" target="_blank" class="text-blue-400 hover:underline">Dominik
+          Weckmüller</a>. Source code available on <a href="https://github.com/do-me/semantic-sorter" target="_blank"
+          class="text-blue-400 hover:underline">GitHub</a>.
       </p>
     </header>
 
@@ -40,7 +48,6 @@
                 class="flex items-center gap-2 cursor-pointer text-[11px] font-mono text-slate-500 hover:text-blue-400">
                 <input type="checkbox" id="param-dedupe" checked class="accent-blue-600"> DEDUPE
               </label>
-              <span class="text-[12px] text-slate-600 font-mono">TEXT_AREA_LOADED</span>
             </div>
           </div>
           <div class="relative group">
@@ -141,7 +148,7 @@ celebration
             <div
               class="absolute inset-0 flex items-center justify-center text-slate-800 font-mono text-[12px] pointer-events-none tracking-widest"
               id="empty-state">
-              READY_FOR_COMPUTE
+              Ready
             </div>
           </div>
         </div>
@@ -223,7 +230,7 @@ celebration
             </thead>
             <tbody class="divide-y divide-slate-800/30">
               <tr>
-                <td class="p-20 text-center text-slate-700 italic tracking-widest uppercase">IDLE_AWAIT_PROCESS</td>
+                <td class="p-20 text-center text-slate-700 italic tracking-widest uppercase">No data processed</td>
               </tr>
             </tbody>
           </table>
@@ -238,9 +245,9 @@ celebration
           <div class="w-6 h-px bg-blue-500"></div>
           <h3 class="font-bold text-slate-400 uppercase tracking-widest">Transformer.js / LLM</h3>
           <p class="text-slate-500 text-justify">
-            Sequence weights are derived from <span class="text-slate-300">all-MiniLM-L6-v2</span>. This 384-dimensional
-            dense vector model captures deep semantic relationships between entities, executed locally via WebGPU/WASM
-            for zero-latency inference.
+            Sequence weights are derived from a <span class="text-slate-300">Transformer-based</span> embedding model.
+            High-dimensional dense vector models capture deep semantic relationships between entities, executed locally
+            for private and efficient inference.
           </p>
         </div>
         <div class="space-y-3">
@@ -266,12 +273,9 @@ celebration
       <div
         class="flex flex-col md:flex-row items-center justify-between gap-6 pt-12 border-t border-slate-800/30 text-[12px] font-mono text-slate-600 uppercase">
         <div class="flex gap-10">
-          <span>LATENCY: LOCAL_COMPUTE</span>
-          <span>GPU_ACCEL: ENABLED</span>
-          <span>COMPILER: RUST_WASM</span>
         </div>
         <div class="tracking-widest">
-          &copy; 2026 Semantic Sequencer // Built for Advanced Agentic Reasoning
+          &copy; 2026 Dominik Weckmüller
         </div>
       </div>
     </footer>
