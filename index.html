@@ -19,7 +19,7 @@
         <div class="flex items-center gap-4">
         </div>
       </div>
-      <p class="text-slate-400 max-w-3xl leading-relaxed text-base">
+      <p class="text-slate-400 w-full leading-relaxed text-base">
         A semantic sorting approach based on embeddings, a distance matrix between entities (cosine distances) and a
         solver,
         originally developed for solving vehicle routing problems (VRP) like the Traveling Salesman Problem (TSP).
@@ -130,7 +130,7 @@ celebration
           </div>
         </div>
 
-        <div class="space-y-4">
+        <div class="flex flex-col gap-4 h-full">
           <div class="flex items-center justify-between">
             <h2 class="text-[13px] font-bold text-slate-500 uppercase tracking-[0.2em]">Optimized result</h2>
             <button id="copy-btn"
@@ -144,7 +144,7 @@ celebration
             </button>
           </div>
           <div id="output-list"
-            class="w-full h-[400px] bg-slate-950/50 border border-slate-800 rounded-lg p-5 overflow-y-auto space-y-1.5 relative scrollbar-thin scrollbar-thumb-slate-800">
+            class="w-full flex-1 min-h-[400px] bg-slate-950/50 border border-slate-800 rounded-lg p-5 overflow-y-auto space-y-1 relative scrollbar-thin scrollbar-thumb-slate-800">
             <div
               class="absolute inset-0 flex items-center justify-center text-slate-800 font-mono text-[12px] pointer-events-none tracking-widest"
               id="empty-state">
@@ -174,12 +174,12 @@ celebration
             <div class="flex gap-4 px-4 py-2 bg-slate-950 rounded border border-slate-800 items-center">
               <div class="flex items-center gap-2 border-r border-slate-800 pr-4">
                 <span class="text-slate-500 uppercase">Rad</span>
-                <input type="range" id="param-radius" min="1" max="25" value="8"
+                <input type="range" id="param-radius" min="1" max="25" value="4"
                   class="w-16 h-1 accent-blue-600 bg-slate-800 rounded-lg appearance-none cursor-pointer">
               </div>
               <div class="flex items-center gap-2 border-r border-slate-800 pr-4">
                 <span class="text-slate-500 uppercase">Wid</span>
-                <input type="range" id="param-linewidth" min="1" max="10" value="3"
+                <input type="range" id="param-linewidth" min="1" max="10" value="1"
                   class="w-16 h-1 accent-blue-600 bg-slate-800 rounded-lg appearance-none cursor-pointer">
               </div>
               <div class="flex items-center gap-2 border-r border-slate-800 pr-4">
