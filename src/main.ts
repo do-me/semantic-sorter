@@ -295,7 +295,7 @@ function renderResult(indices: number[], entities: string[], embeddings: number[
     indices.forEach((idx, i) => {
         const sim = i > 0 ? (1 - getDistance(embeddings[indices[i-1]], embeddings[idx])).toFixed(4) : '';
         const el = document.createElement('div');
-        el.className = 'p-1.5 px-3 bg-slate-950/40 border border-slate-800/40 rounded flex items-center gap-2 animate-fade-in group hover:bg-slate-900 transition-all cursor-pointer hover:border-blue-500/30';
+        el.className = 'p-1 px-3 bg-slate-950/40 border border-slate-800/40 rounded flex items-center gap-1.5 animate-fade-in group hover:bg-slate-900 transition-all cursor-pointer hover:border-blue-500/30';
         el.innerHTML = `<span class="text-[11px] text-slate-700 font-mono w-5 shrink-0">${(i+1).toString().padStart(2, '0')}</span><span class="text-slate-300 text-sm font-medium overflow-x-auto whitespace-nowrap scrollbar-none">${entities[idx]}</span>${sim ? `<span class="text-[11px] text-slate-700 font-mono ml-auto tracking-tighter shrink-0">SIM_${sim}</span>` : ''}`;
         el.onclick = () => flyToEntity(idx);
         el.style.animationDelay = `${i * 20}ms`;
@@ -321,4 +321,19 @@ function renderMatrix(entities: string[], embeddings: number[][]) {
 }
 
 sortBtn.addEventListener('click', runSort);
+const toggleMatrixBtn = document.getElementById('btn-toggle-matrix');
+if (toggleMatrixBtn) {
+    toggleMatrixBtn.addEventListener('click', () => {
+        const section = document.getElementById('matrix-section');
+        if (section) {
+            section.classList.toggle('hidden');
+            if (!section.classList.contains('hidden')) {
+                section.scrollIntoView({ behavior: 'smooth' });
+                toggleMatrixBtn.textContent = 'Hide Matrix';
+            } else {
+                toggleMatrixBtn.textContent = 'Display Matrix';
+            }
+        }
+    });
+}
 initialize();
