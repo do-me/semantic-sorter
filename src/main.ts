@@ -132,10 +132,6 @@ const initialize = async () => {
             
             setStatus('Ready');
             sortBtn.disabled = false;
-            // If we have pending data to sort, run it now
-            if (inputText.value.trim()) {
-                runSort();
-            }
         } else if (type === 'STATUS') {
             setStatus(`Progress: ${String(payload).toLowerCase()}`);
         } else if (type === 'ERROR') {
@@ -147,6 +143,15 @@ const initialize = async () => {
             handleSorted(payload);
         }
     };
+    
+    // Auto-initialize model
+    const modelInput = document.getElementById('model-name') as HTMLInputElement;
+    // gpuCheck is already defined above
+    const modelName = modelInput?.value || 'mixedbread-ai/mxbai-embed-xsmall-v1';
+    const device = gpuCheck?.checked ? 'webgpu' : 'wasm';
+    
+    setStatus('Loading model...');
+    worker.postMessage({ type: 'INIT', payload: { modelName, device } });
 }
 
 function initDeck() {
