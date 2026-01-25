@@ -147,7 +147,7 @@ const initialize = async () => {
     // Auto-initialize model
     const modelInput = document.getElementById('model-name') as HTMLInputElement;
     // gpuCheck is already defined above
-    const modelName = modelInput?.value || 'mixedbread-ai/mxbai-embed-xsmall-v1';
+    const modelName = modelInput?.value || 'onnx-community/embeddinggemma-300m-ONNX';
     const device = gpuCheck?.checked ? 'webgpu' : 'wasm';
     
     setStatus('Loading model...');
@@ -177,7 +177,7 @@ const runSort = () => {
 
   const modelInput = document.getElementById('model-name') as HTMLInputElement;
   const gpuCheck = document.getElementById('param-webgpu') as HTMLInputElement;
-  const modelName = modelInput?.value || 'mixedbread-ai/mxbai-embed-xsmall-v1';
+  const modelName = modelInput?.value || 'onnx-community/embeddinggemma-300m-ONNX';
   const device = gpuCheck?.checked ? 'webgpu' : 'wasm';
 
   // Check if we need to re-init

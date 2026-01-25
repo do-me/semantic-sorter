@@ -12,7 +12,7 @@ The application implements a multi-threaded architecture using Web Workers to en
 
 ### 2. Semantic Embedding Generation
 *   **Library**: `@huggingface/transformers` (Transformers.js)
-*   **Model**: `mixedbread-ai/mxbai-embed-xsmall-v1` (or configured alternative)
+*   **Model**: `onnx-community/embeddinggemma-300m-ONNX` (or configured alternative)
 *   **Backend**: Executed via ONNX Runtime with automatic device detection (WebGPU or WebAssembly).
 *   **Function**: Converts raw text strings into 384-dimensional dense vectors that capture semantic relationships.
 

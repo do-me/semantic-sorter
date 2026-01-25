@@ -14,7 +14,7 @@ let vrpReady = false;
 
 const ctx: Worker = self as any;
 
-const initialize = async (modelName: string = 'mixedbread-ai/mxbai-embed-xsmall-v1', device: string = 'wasm') => {
+const initialize = async (modelName: string = 'onnx-community/embeddinggemma-300m-ONNX', device: string = 'wasm') => {
     try {
         if (!vrpReady) {
             await init();
