@@ -297,11 +297,30 @@ function getDistance(a: number[], b: number[]) { return Math.max(0, 1 - cosineSi
 
 function renderResult(indices: number[], entities: string[], embeddings: number[][]) {
     outputList.innerHTML = '';
+    let currentHue = 210; // Start with a nice blue
+    
     indices.forEach((idx, i) => {
-        const sim = i > 0 ? (1 - getDistance(embeddings[indices[i-1]], embeddings[idx])).toFixed(4) : '';
+        const simNum = i > 0 ? (1 - getDistance(embeddings[indices[i-1]], embeddings[idx])) : 1;
+        
+        // If similarity drops significantly, we assume a "topic break" and shift hue
+        if (i > 0 && simNum < 0.8) {
+            currentHue = (currentHue + 45) % 360;
+        }
+
+        const sim = i > 0 ? simNum.toFixed(4) : '';
         const el = document.createElement('div');
-        el.className = 'p-1 px-3 bg-slate-950/40 border border-slate-800/40 rounded flex items-center gap-1.5 animate-fade-in group hover:bg-slate-900 transition-all cursor-pointer hover:border-blue-500/30';
-        el.innerHTML = `<span class="text-[11px] text-slate-700 font-mono w-5 shrink-0">${(i+1).toString().padStart(2, '0')}</span><span class="text-slate-300 text-sm font-medium overflow-x-auto whitespace-nowrap scrollbar-none">${entities[idx]}</span>${sim ? `<span class="text-[11px] text-slate-700 font-mono ml-auto tracking-tighter shrink-0">SIM_${sim}</span>` : ''}`;
+        
+        // Visual indicator: Stronger link = Darker/More intense background
+        // In dark mode, we use lower lightness and higher alpha for "strength"
+        const intensity = i === 0 ? 0.5 : Math.max(0, (simNum - 0.5) / 0.5);
+        const alpha = 0.1 + (intensity * 0.3);
+        const lightness = 40 - (intensity * 20); 
+        
+        el.className = 'p-1 px-3 border rounded flex items-center gap-1.5 animate-fade-in group hover:ring-1 hover:ring-white/20 transition-all cursor-pointer';
+        el.style.backgroundColor = `hsla(${currentHue}, 70%, ${lightness}%, ${alpha})`;
+        el.style.borderColor = `hsla(${currentHue}, 70%, 50%, 0.15)`;
+        
+        el.innerHTML = `<span class="text-[11px] text-slate-700 font-mono w-5 shrink-0">${(i+1).toString().padStart(2, '0')}</span><span class="text-slate-300 text-sm font-medium overflow-x-auto whitespace-nowrap scrollbar-none">${entities[idx]}</span>${sim ? `<span class="text-[11px] text-slate-500 font-mono ml-auto tracking-tighter shrink-0">SIM_${sim}</span>` : ''}`;
         el.onclick = () => flyToEntity(idx);
         el.style.animationDelay = `${i * 20}ms`;
         outputList.appendChild(el);
