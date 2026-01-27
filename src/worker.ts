@@ -27,15 +27,10 @@ const initialize = async (modelName: string = 'onnx-community/embeddinggemma-300
             device: device as any,
             dtype: 'fp32',
             progress_callback: (data: any) => {
-                if (data.status === 'progress') {
-                    ctx.postMessage({ 
-                        type: 'PROGRESS', 
-                        payload: { 
-                            file: data.file, 
-                            progress: data.progress 
-                        } 
-                    });
-                }
+                ctx.postMessage({
+                    type: 'PROGRESS',
+                    payload: data
+                });
             }
         });
         
