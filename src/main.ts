@@ -136,8 +136,21 @@ const initialize = async () => {
             sortBtn.disabled = false;
             sortBtnText.textContent = 'Execute Semantic Optimization';
             sortBtnSpinner.classList.add('hidden');
+            // Reset button gradient
+            sortBtn.style.background = '';
+            sortBtn.classList.add('bg-blue-600', 'hover:bg-blue-500');
+            sortBtnSpinner.classList.add('hidden');
         } else if (type === 'STATUS') {
             setStatus(`Progress: ${String(payload).toLowerCase()}`);
+        } else if (type === 'PROGRESS') {
+             const { progress } = payload;
+             if (progress !== undefined) {
+                 const pct = Math.round(progress);
+                 sortBtnText.textContent = `Loading Model... ${pct}%`;
+                 // Update gradient: Darker blue filling up from left
+                 sortBtn.classList.remove('bg-blue-600', 'hover:bg-blue-500');
+                 sortBtn.style.background = `linear-gradient(90deg, #2563eb ${pct}%, #1e293b ${pct}%)`;
+             }
         } else if (type === 'ERROR') {
             console.error(payload);
             setStatus(`Error: ${payload}`);
