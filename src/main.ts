@@ -37,6 +37,8 @@ const sortBtn = document.getElementById('sort-btn') as HTMLButtonElement;
 const copyBtn = document.getElementById('copy-btn') as HTMLButtonElement;
 const outputList = document.getElementById('output-list') as HTMLDivElement;
 const statusDiv = document.getElementById('status') as HTMLDivElement;
+const sortBtnText = document.getElementById('sort-btn-text') as HTMLSpanElement;
+const sortBtnSpinner = document.getElementById('sort-btn-spinner') as unknown as SVGElement;
 const matrixTableContainer = document.querySelector('.overflow-x-auto') as HTMLDivElement;
 if (matrixTableContainer) {
     matrixTableContainer.classList.add('matrix-tbl-container');
@@ -132,26 +134,24 @@ const initialize = async () => {
             
             setStatus('Ready');
             sortBtn.disabled = false;
+            sortBtnText.textContent = 'Execute Semantic Optimization';
+            sortBtnSpinner.classList.add('hidden');
         } else if (type === 'STATUS') {
             setStatus(`Progress: ${String(payload).toLowerCase()}`);
         } else if (type === 'ERROR') {
             console.error(payload);
             setStatus(`Error: ${payload}`);
             sortBtn.disabled = false;
+            sortBtnSpinner.classList.add('hidden');
+            sortBtnText.textContent = vrpReady ? 'Execute Semantic Optimization' : 'Load Model';
             vrpReady = false; // Allow retry
         } else if (type === 'SORTED') {
             handleSorted(payload);
         }
     };
     
-    // Auto-initialize model
-    const modelInput = document.getElementById('model-name') as HTMLInputElement;
-    // gpuCheck is already defined above
-    const modelName = modelInput?.value || 'onnx-community/embeddinggemma-300m-ONNX';
-    const device = gpuCheck?.checked ? 'webgpu' : 'wasm';
-    
-    setStatus('Loading model...');
-    worker.postMessage({ type: 'INIT', payload: { modelName, device } });
+    setStatus('Ready');
+    sortBtn.disabled = false;
 }
 
 function initDeck() {
@@ -184,6 +184,8 @@ const runSort = () => {
   if (!vrpReady || modelName !== lastInitializedModel || device !== lastInitializedDevice) {
       vrpReady = false;
       sortBtn.disabled = true;
+      sortBtnText.textContent = 'Loading...';
+      sortBtnSpinner.classList.remove('hidden');
       setStatus('Loading model...');
       worker.postMessage({ type: 'INIT', payload: { modelName, device } });
       return;
@@ -204,6 +206,8 @@ const runSort = () => {
     return;
   }
   sortBtn.disabled = true;
+  sortBtnSpinner.classList.remove('hidden');
+  sortBtnText.textContent = 'Optimizing...';
   setStatus('Processing...');
   sortStartTime = performance.now();
   worker.postMessage({ type: 'SORT', payload: entities });
@@ -219,6 +223,8 @@ function handleSorted(payload: any) {
     renderMap(sortedIndices, entities, coordinates);
     setStatus(`Complete: ${entities.length} nodes // Total: ${durationMs.toFixed(0)}ms // Unit: ${perEntityMs.toFixed(1)}ms/node`);
     sortBtn.disabled = false;
+    sortBtnSpinner.classList.add('hidden');
+    sortBtnText.textContent = 'Execute Semantic Optimization';
 }
 
 function flyToEntity(targetIndex: number) {
